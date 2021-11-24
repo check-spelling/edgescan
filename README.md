@@ -1,6 +1,6 @@
 # edgescan  
 
-![](https://img.shields.io/pypi/pyversions/edgescan) ![](https://img.shields.io/pypi/wheel/edgescan) ![](https://img.shields.io/github/license/whitfieldsdad/edgescan)
+[![](https://img.shields.io/pypi/pyversions/edgescan)](https://pypi.org/project/edgescan/) [![](https://img.shields.io/pypi/wheel/edgescan)](https://pypi.org/project/edgescan/#files) [![](https://img.shields.io/pypi/l/edgescan)](https://github.com/whitfieldsdad/edgescan/blob/main/LICENSE.md)
 
 ---
 
