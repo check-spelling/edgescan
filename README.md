@@ -41,11 +41,13 @@ $ python3 setup.py install
 
 ## Testing
 
-You can run the unit tests and integration tests for this package as follows:
+You can run the integration tests for this package as follows:
 
 ```shell
 $ make test
 ```
+
+> Note: the integration tests will only be run if the `EDGESCAN_API_KEY` environment variable has been set.
 
 ## Tutorials
 
