@@ -1,6 +1,5 @@
 # edgescan  
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/edgescan) ![PyPI - Wheel](https://img.shields.io/pypi/wheel/edgescan) ![PyPI - Downloads](https://img.shields.io/pypi/dm/edgescan)
-
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/edgescan) ![PyPI - Wheel](https://img.shields.io/pypi/wheel/edgescan)
 ---
 
 `edgescan` is a client for [EdgeScan's](https://www.edgescan.com/) [REST API](https://s3-eu-west-1.amazonaws.com/live-cdn-content/docs/api-guide-latest.pdf) that allows you to:
