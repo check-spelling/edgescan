@@ -92,7 +92,7 @@ python-versions = "*"
 
 [[package]]
 name = "hodgepodge"
-version = "2.3.3"
+version = "3.0.4"
 description = ""
 category = "main"
 optional = false
@@ -316,7 +316,7 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "765ea6040d058b355c3e476186e03d108f6878ded8e554c3c41777438f5c8d72"
+content-hash = "bc53cf82f2f4074cdd83e36f9cec5e1a44c39c424ae382e598b8142fcbb53912"
 
 [metadata.files]
 antlr4-python3-runtime = [
@@ -407,8 +407,8 @@ dawg = [
     {file = "DAWG-0.8.0.tar.gz", hash = "sha256:34881e06278d4a54cf0b402c0c8b587bef0caa78f0eee595adc7a2aa530e48ce"},
 ]
 hodgepodge = [
-    {file = "hodgepodge-2.3.3-py3-none-any.whl", hash = "sha256:2bcd9b9732b6c8f5dfa739708f0b7b50960b5da5f1826cf7c325e8f0d2bcd289"},
-    {file = "hodgepodge-2.3.3.tar.gz", hash = "sha256:adfa12b509d6a2798aef050f1ca3dea6d661d23d005074d327b535d8c1941328"},
+    {file = "hodgepodge-3.0.4-py3-none-any.whl", hash = "sha256:e2dd205f975cc1b5290a15251d298bbf513d7eec9aaf1a7218966e4cdd167702"},
+    {file = "hodgepodge-3.0.4.tar.gz", hash = "sha256:554393f60de13927cade387fc8f873f3cc7aa318867fb5cc9ebbffe647929382"},
 ]
 idna = [
     {file = "idna-2.8-py2.py3-none-any.whl", hash = "sha256:ea8b7f6188e6fa117537c3df7da9fc686d485087abf6ac197f9c46432f7e4a3c"},

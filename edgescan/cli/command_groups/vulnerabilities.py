@@ -29,7 +29,6 @@ def get_vulnerability(ctx: click.Context, vulnerability_id: int):
 @click.option('--cve-ids')
 @click.option('--asset-ids')
 @click.option('--asset-tags')
-@click.option('--ip-addresses')
 @click.option('--affects-pci-compliance/--does-not-affect-pci-compliance', default=None)
 @click.option('--include-application-layer-vulnerabilities/--exclude-application-layer-vulnerabilities', default=True)
 @click.option('--include-network-layer-vulnerabilities/--exclude-network-layer-vulnerabilities', default=True)
@@ -42,7 +41,7 @@ def get_vulnerabilities(
         cve_ids: Optional[str],
         asset_ids: Optional[str],
         asset_tags: Optional[str],
-        ip_addresses: Optional[str],
+        locations: Optional[str],
         affects_pci_compliance: Optional[bool],
         include_application_layer_vulnerabilities: Optional[bool],
         include_network_layer_vulnerabilities: Optional[bool],
@@ -55,7 +54,7 @@ def get_vulnerabilities(
         cve_ids=click.str_to_strs(cve_ids),
         asset_ids=click.str_to_ints(asset_ids),
         asset_tags=click.str_to_strs(asset_tags),
-        ip_addresses=click.str_to_strs(ip_addresses),
+        locations=click.str_to_strs(locations),
         affects_pci_compliance=affects_pci_compliance,
         include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
         include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
@@ -70,7 +69,7 @@ def get_vulnerabilities(
 @click.option('--cve-ids')
 @click.option('--asset-ids')
 @click.option('--asset-tags')
-@click.option('--ip-addresses')
+@click.option('--locations')
 @click.option('--affects-pci-compliance/--does-not-affect-pci-compliance', default=None)
 @click.option('--include-application-layer-vulnerabilities/--exclude-application-layer-vulnerabilities', default=True)
 @click.option('--include-network-layer-vulnerabilities/--exclude-network-layer-vulnerabilities', default=True)
@@ -82,7 +81,7 @@ def count_vulnerabilities(
         cve_ids: Optional[str],
         asset_ids: Optional[str],
         asset_tags: Optional[str],
-        ip_addresses: Optional[str],
+        locations: Optional[str],
         affects_pci_compliance: Optional[bool],
         include_application_layer_vulnerabilities: Optional[bool],
         include_network_layer_vulnerabilities: Optional[bool]):
@@ -94,7 +93,7 @@ def count_vulnerabilities(
         cve_ids=click.str_to_strs(cve_ids),
         asset_ids=click.str_to_ints(asset_ids),
         asset_tags=click.str_to_strs(asset_tags),
-        ip_addresses=click.str_to_strs(ip_addresses),
+        locations=click.str_to_strs(locations),
         affects_pci_compliance=affects_pci_compliance,
         include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
         include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,

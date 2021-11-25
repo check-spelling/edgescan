@@ -1,4 +1,4 @@
-from typing import List, Iterator, Any, Optional
+from typing import List, Iterator, Any, Optional, Union
 from edgescan.api.authentication import DEFAULT_API_KEY
 from edgescan.api.host import DEFAULT_HOST
 from edgescan.constants import COLLECTION_TYPES
@@ -13,7 +13,9 @@ import edgescan.data.parser as parser
 import edgescan.http.session
 import hodgepodge.pattern_matching
 import hodgepodge.platforms
+import hodgepodge.time
 import urllib.parse
+import datetime
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -85,6 +87,18 @@ class EdgeScan:
             os_types: Optional[List[str]] = None,
             os_versions: Optional[List[str]] = None,
             alive: Optional[bool] = None,
+            min_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            vulnerability_ids: Optional[List[int]] = None,
+            cve_ids: Optional[List[str]] = None,
+            min_vulnerability_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_vulnerability_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_vulnerability_open_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_open_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_vulnerability_close_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_close_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
             limit: Optional[int] = None) -> List[Host]:
 
         return list(self.iter_hosts(
@@ -96,6 +110,18 @@ class EdgeScan:
             os_types=os_types,
             os_versions=os_versions,
             alive=alive,
+            min_update_time=min_update_time,
+            max_update_time=max_update_time,
+            vulnerability_ids=vulnerability_ids,
+            cve_ids=cve_ids,
+            min_vulnerability_create_time=min_vulnerability_create_time,
+            max_vulnerability_create_time=max_vulnerability_create_time,
+            min_vulnerability_update_time=min_vulnerability_update_time,
+            max_vulnerability_update_time=max_vulnerability_update_time,
+            min_vulnerability_open_time=min_vulnerability_open_time,
+            max_vulnerability_open_time=max_vulnerability_open_time,
+            min_vulnerability_close_time=min_vulnerability_close_time,
+            max_vulnerability_close_time=max_vulnerability_close_time,
             limit=limit,
         ))
 
@@ -109,36 +135,64 @@ class EdgeScan:
             os_types: Optional[List[str]] = None,
             os_versions: Optional[List[str]] = None,
             alive: Optional[bool] = None,
+            min_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            vulnerability_ids: Optional[List[int]] = None,
+            cve_ids: Optional[List[str]] = None,
+            min_vulnerability_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_vulnerability_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_vulnerability_open_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_open_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_vulnerability_close_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_close_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
             limit: Optional[int] = None) -> Iterator[Host]:
 
-        os_types = None if not os_types else [hodgepodge.platforms.parse_os_type(os_type) for os_type in os_types]
+        #: The location of a host may be specified by IP address or hostname.
+        ip_addresses = set(ip_addresses) if ip_addresses else set()
+        hostnames = set(hostnames) if hostnames else set()
+        locations = ip_addresses | hostnames
 
-        #: If we're filtering hosts by asset tag, we'll first need to lookup assets and filter hosts by asset tag.
+        #: If we're filtering hosts based on related vulnerabilities.
+        if vulnerability_ids or cve_ids or \
+                min_vulnerability_create_time or max_vulnerability_create_time or \
+                min_vulnerability_update_time or max_vulnerability_update_time or \
+                min_vulnerability_open_time or max_vulnerability_open_time or \
+                min_vulnerability_close_time or max_vulnerability_close_time:
+
+            vulnerabilities = self.get_vulnerabilities(
+                ids=vulnerability_ids,
+                cve_ids=cve_ids,
+                min_create_time=min_vulnerability_create_time,
+                max_create_time=max_vulnerability_create_time,
+                min_update_time=min_vulnerability_update_time,
+                max_update_time=max_vulnerability_update_time,
+                min_open_time=min_vulnerability_open_time,
+                max_open_time=max_vulnerability_open_time,
+                min_close_time=min_vulnerability_close_time,
+                max_close_time=max_vulnerability_close_time,
+                asset_ids=asset_ids,
+            )
+            locations &= {vulnerability.location for vulnerability in vulnerabilities}
+
+        #: If we're filtering hosts based on related assets.
         if asset_tags:
             assets = self.iter_assets(ids=asset_ids, tags=asset_tags)
             asset_ids = {asset.id for asset in assets}
 
         i = 0
         for host in self._iter_objects(url=self.hosts_url):
-            if ids and host.id not in ids:
-                continue
-
-            if os_types and not hodgepodge.pattern_matching.str_matches_glob(host.hostnames, hostnames):
-                continue
-
-            if asset_ids and host.asset_id not in asset_ids:
-                continue
-
-            if ip_addresses and host.location not in ip_addresses:
-                continue
-
-            if os_types and not hodgepodge.pattern_matching.str_matches_glob(host.os_type, os_types):
-                continue
-
-            if os_versions and not hodgepodge.pattern_matching.str_matches_glob(host.os_version, os_versions):
-                continue
-
-            if alive is not None and alive != host.is_alive():
+            if not host.matches(
+                ids=ids,
+                asset_ids=asset_ids,
+                locations=locations,
+                os_types=os_types,
+                os_versions=os_versions,
+                alive=alive,
+                min_update_time=min_update_time,
+                max_update_time=max_update_time,
+            ):
                 continue
 
             yield host
@@ -157,7 +211,19 @@ class EdgeScan:
             ip_addresses: Optional[List[str]] = None,
             os_types: Optional[List[str]] = None,
             os_versions: Optional[List[str]] = None,
-            alive: Optional[bool] = None) -> int:
+            alive: Optional[bool] = None,
+            min_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            vulnerability_ids: Optional[List[int]] = None,
+            cve_ids: Optional[List[str]] = None,
+            min_vulnerability_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_vulnerability_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_vulnerability_open_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_open_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_vulnerability_close_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_close_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None) -> int:
 
         hosts = self.iter_hosts(
             ids=ids,
@@ -168,6 +234,18 @@ class EdgeScan:
             os_types=os_types,
             os_versions=os_versions,
             alive=alive,
+            min_update_time=min_update_time,
+            max_update_time=max_update_time,
+            vulnerability_ids=vulnerability_ids,
+            cve_ids=cve_ids,
+            min_vulnerability_create_time=min_vulnerability_create_time,
+            max_vulnerability_create_time=max_vulnerability_create_time,
+            min_vulnerability_update_time=min_vulnerability_update_time,
+            max_vulnerability_update_time=max_vulnerability_update_time,
+            min_vulnerability_open_time=min_vulnerability_open_time,
+            max_vulnerability_open_time=max_vulnerability_open_time,
+            min_vulnerability_close_time=min_vulnerability_close_time,
+            max_vulnerability_close_time=max_vulnerability_close_time,
         )
         return sum(1 for _ in hosts)
 
@@ -179,12 +257,52 @@ class EdgeScan:
             ids: Optional[List[int]] = None,
             names: Optional[List[str]] = None,
             tags: Optional[List[str]] = None,
+            min_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_next_assessment_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_next_assessment_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_last_assessment_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_last_assessment_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_last_host_scan_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_last_host_scan_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            vulnerability_ids: Optional[List[int]] = None,
+            cve_ids: Optional[List[str]] = None,
+            min_vulnerability_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_vulnerability_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_vulnerability_open_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_open_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_vulnerability_close_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_close_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
             limit: Optional[int] = None) -> List[Asset]:
 
         return list(self.iter_assets(
             ids=ids,
             names=names,
             tags=tags,
+            min_create_time=min_create_time,
+            max_create_time=max_create_time,
+            min_update_time=min_update_time,
+            max_update_time=max_update_time,
+            min_next_assessment_time=min_next_assessment_time,
+            max_next_assessment_time=max_next_assessment_time,
+            min_last_assessment_time=min_last_assessment_time,
+            max_last_assessment_time=max_last_assessment_time,
+            min_last_host_scan_time=min_last_host_scan_time,
+            max_last_host_scan_time=max_last_host_scan_time,
+            vulnerability_ids=vulnerability_ids,
+            cve_ids=cve_ids,
+            min_vulnerability_create_time=min_vulnerability_create_time,
+            max_vulnerability_create_time=max_vulnerability_create_time,
+            min_vulnerability_update_time=min_vulnerability_update_time,
+            max_vulnerability_update_time=max_vulnerability_update_time,
+            min_vulnerability_open_time=min_vulnerability_open_time,
+            max_vulnerability_open_time=max_vulnerability_open_time,
+            min_vulnerability_close_time=min_vulnerability_close_time,
+            max_vulnerability_close_time=max_vulnerability_close_time,
             limit=limit,
         ))
 
@@ -193,19 +311,67 @@ class EdgeScan:
             ids: Optional[List[int]] = None,
             names: Optional[List[str]] = None,
             tags: Optional[List[str]] = None,
+            min_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_next_assessment_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_next_assessment_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_last_assessment_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_last_assessment_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_last_host_scan_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_last_host_scan_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            vulnerability_ids: Optional[List[int]] = None,
+            cve_ids: Optional[List[str]] = None,
+            min_vulnerability_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_vulnerability_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_vulnerability_open_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_open_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_vulnerability_close_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_close_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
             limit: Optional[int] = None) -> Iterator[Asset]:
 
-        tags = set(tags) if tags else None
+        #: If we're filtering assets based on related vulnerabilities.
+        if vulnerability_ids or cve_ids or \
+                min_vulnerability_create_time or max_vulnerability_create_time or \
+                min_vulnerability_update_time or max_vulnerability_update_time or \
+                min_vulnerability_open_time or max_vulnerability_open_time or \
+                min_vulnerability_close_time or max_vulnerability_close_time:
+
+            vulnerabilities = self.get_vulnerabilities(
+                ids=vulnerability_ids,
+                cve_ids=cve_ids,
+                min_create_time=min_vulnerability_create_time,
+                max_create_time=max_vulnerability_create_time,
+                min_update_time=min_vulnerability_update_time,
+                max_update_time=max_vulnerability_update_time,
+                min_open_time=min_vulnerability_open_time,
+                max_open_time=max_vulnerability_open_time,
+                min_close_time=min_vulnerability_close_time,
+                max_close_time=max_vulnerability_close_time,
+                asset_ids=ids,
+            )
+            ids = {vulnerability.asset_id for vulnerability in vulnerabilities}
 
         i = 0
         for asset in self._iter_objects(url=self.assets_url):
-            if ids and asset.id not in ids:
-                continue
-
-            if names and not hodgepodge.pattern_matching.str_matches_glob(asset.name, names):
-                continue
-
-            if tags and set(asset.tags).isdisjoint(tags):
+            if not asset.matches(
+                ids=ids,
+                names=names,
+                tags=tags,
+                min_create_time=min_create_time,
+                max_create_time=max_create_time,
+                min_update_time=min_update_time,
+                max_update_time=max_update_time,
+                min_next_assessment_time=min_next_assessment_time,
+                max_next_assessment_time=max_next_assessment_time,
+                min_last_assessment_time=min_last_assessment_time,
+                max_last_assessment_time=max_last_assessment_time,
+                min_last_host_scan_time=min_last_host_scan_time,
+                max_last_host_scan_time=max_last_host_scan_time,
+            ):
                 continue
 
             yield asset
@@ -219,12 +385,52 @@ class EdgeScan:
             self,
             ids: Optional[List[int]] = None,
             names: Optional[List[str]] = None,
-            tags: Optional[List[str]] = None) -> int:
+            tags: Optional[List[str]] = None,
+            min_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_next_assessment_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_next_assessment_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_last_assessment_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_last_assessment_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_last_host_scan_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_last_host_scan_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            vulnerability_ids: Optional[List[int]] = None,
+            cve_ids: Optional[List[str]] = None,
+            min_vulnerability_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_vulnerability_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_vulnerability_open_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_open_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_vulnerability_close_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_vulnerability_close_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None) -> int:
 
         assets = self.iter_assets(
             ids=ids,
             names=names,
             tags=tags,
+            min_create_time=min_create_time,
+            max_create_time=max_create_time,
+            min_update_time=min_update_time,
+            max_update_time=max_update_time,
+            min_next_assessment_time=min_next_assessment_time,
+            max_next_assessment_time=max_next_assessment_time,
+            min_last_assessment_time=min_last_assessment_time,
+            max_last_assessment_time=max_last_assessment_time,
+            min_last_host_scan_time=min_last_host_scan_time,
+            max_last_host_scan_time=max_last_host_scan_time,
+            vulnerability_ids=vulnerability_ids,
+            cve_ids=cve_ids,
+            min_vulnerability_create_time=min_vulnerability_create_time,
+            max_vulnerability_create_time=max_vulnerability_create_time,
+            min_vulnerability_update_time=min_vulnerability_update_time,
+            max_vulnerability_update_time=max_vulnerability_update_time,
+            min_vulnerability_open_time=min_vulnerability_open_time,
+            max_vulnerability_open_time=max_vulnerability_open_time,
+            min_vulnerability_close_time=min_vulnerability_close_time,
+            max_vulnerability_close_time=max_vulnerability_close_time,
         )
         return sum(1 for _ in assets)
 
@@ -238,10 +444,18 @@ class EdgeScan:
             cve_ids: Optional[List[str]] = None,
             asset_ids: Optional[List[int]] = None,
             asset_tags: Optional[List[str]] = None,
-            ip_addresses: Optional[List[str]] = None,
+            locations: Optional[List[str]] = None,
             affects_pci_compliance: Optional[bool] = None,
             include_application_layer_vulnerabilities: Optional[bool] = True,
             include_network_layer_vulnerabilities: Optional[bool] = True,
+            min_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_open_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_open_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_close_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_close_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
             limit: Optional[int] = None) -> List[Vulnerability]:
 
         return list(self.iter_vulnerabilities(
@@ -250,10 +464,18 @@ class EdgeScan:
             cve_ids=cve_ids,
             asset_ids=asset_ids,
             asset_tags=asset_tags,
-            ip_addresses=ip_addresses,
+            locations=locations,
             affects_pci_compliance=affects_pci_compliance,
             include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
             include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
+            min_create_time=min_create_time,
+            max_create_time=max_create_time,
+            min_update_time=min_update_time,
+            max_update_time=max_update_time,
+            min_open_time=min_open_time,
+            max_open_time=max_open_time,
+            min_close_time=min_close_time,
+            max_close_time=max_close_time,
             limit=limit,
         ))
 
@@ -264,10 +486,18 @@ class EdgeScan:
             cve_ids: Optional[List[str]] = None,
             asset_ids: Optional[List[int]] = None,
             asset_tags: Optional[List[str]] = None,
-            ip_addresses: Optional[List[str]] = None,
+            locations: Optional[List[str]] = None,
             affects_pci_compliance: Optional[bool] = None,
             include_application_layer_vulnerabilities: Optional[bool] = None,
             include_network_layer_vulnerabilities: Optional[bool] = None,
+            min_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_open_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_open_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_close_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_close_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
             limit: Optional[int] = None) -> Iterator[Vulnerability]:
 
         if asset_tags:
@@ -276,28 +506,24 @@ class EdgeScan:
 
         i = 0
         for vulnerability in self._iter_objects(url=self.vulnerabilities_url):
-            if ids and vulnerability.id not in ids:
-                continue
-
-            if names and not hodgepodge.pattern_matching.str_matches_glob(vulnerability.name, names):
-                continue
-
-            if asset_ids and vulnerability.asset_id not in asset_ids:
-                continue
-
-            if cve_ids and not hodgepodge.pattern_matching.str_matches_glob(vulnerability.cves, cve_ids):
-                continue
-
-            if ip_addresses and not hodgepodge.pattern_matching.str_matches_glob(vulnerability.location, ip_addresses):
-                continue
-
-            if affects_pci_compliance is not None and affects_pci_compliance != vulnerability.affects_pci_compliance():
-                continue
-
-            if include_application_layer_vulnerabilities is False and vulnerability.is_application_layer_vulnerability():
-                continue
-
-            if include_network_layer_vulnerabilities is False and vulnerability.is_network_layer_vulnerability():
+            if not vulnerability.matches(
+                ids=ids,
+                names=names,
+                cve_ids=cve_ids,
+                asset_ids=asset_ids,
+                locations=locations,
+                affects_pci_compliance=affects_pci_compliance,
+                include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
+                include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
+                min_create_time=min_create_time,
+                max_create_time=max_create_time,
+                min_update_time=min_update_time,
+                max_update_time=max_update_time,
+                min_open_time=min_open_time,
+                max_open_time=max_open_time,
+                min_close_time=min_close_time,
+                max_close_time=max_close_time,
+            ):
                 continue
 
             yield vulnerability
@@ -314,10 +540,18 @@ class EdgeScan:
             cve_ids: Optional[List[str]] = None,
             asset_ids: Optional[List[int]] = None,
             asset_tags: Optional[List[str]] = None,
-            ip_addresses: Optional[List[str]] = None,
+            locations: Optional[List[str]] = None,
             affects_pci_compliance: Optional[bool] = None,
             include_application_layer_vulnerabilities: Optional[bool] = None,
-            include_network_layer_vulnerabilities: Optional[bool] = None) -> int:
+            include_network_layer_vulnerabilities: Optional[bool] = None,
+            min_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_create_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_open_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_open_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            min_close_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_close_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None) -> int:
 
         vulnerabilities = self.iter_vulnerabilities(
             ids=ids,
@@ -325,10 +559,18 @@ class EdgeScan:
             cve_ids=cve_ids,
             asset_ids=asset_ids,
             asset_tags=asset_tags,
-            ip_addresses=ip_addresses,
+            locations=locations,
             affects_pci_compliance=affects_pci_compliance,
             include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
             include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
+            min_create_time=min_create_time,
+            max_create_time=max_create_time,
+            min_update_time=min_update_time,
+            max_update_time=max_update_time,
+            min_open_time=min_open_time,
+            max_open_time=max_open_time,
+            min_close_time=min_close_time,
+            max_close_time=max_close_time,
         )
         return sum(1 for _ in vulnerabilities)
 
