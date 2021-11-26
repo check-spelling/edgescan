@@ -75,7 +75,7 @@ Usage: edgescan [OPTIONS] COMMAND [ARGS]...
 Options:
   --host TEXT     ${EDGESCAN_HOST} ✖
   --api-key TEXT  ${EDGESCAN_API_KEY} ✔
-  --help
+  --help          Show this message and exit.
 
 Commands:
   assets           Query or count assets.
@@ -101,7 +101,7 @@ Usage: edgescan assets [OPTIONS] COMMAND [ARGS]...
   Query or count assets.
 
 Options:
-  --help
+  --help  Show this message and exit.
 
 Commands:
   count-assets
@@ -122,8 +122,29 @@ Options:
   --ids TEXT
   --names TEXT
   --tags TEXT
+  --min-create-time TEXT
+  --max-create-time TEXT
+  --min-update-time TEXT
+  --max-update-time TEXT
+  --min-next-assessment-time TEXT
+  --max-next-assessment-time TEXT
+  --min-last-assessment-time TEXT
+  --max-last-assessment-time TEXT
+  --min-last-host-scan-time TEXT
+  --max-last-host-scan-time TEXT
+  --vulnerability-ids TEXT
+  --cve-ids TEXT
+  --min-vulnerability-create-time TEXT
+  --max-vulnerability-create-time TEXT
+  --min-vulnerability-update-time TEXT
+  --max-vulnerability-update-time TEXT
+  --min-vulnerability-open-time TEXT
+  --max-vulnerability-open-time TEXT
+  --min-vulnerability-close-time TEXT
+  --max-vulnerability-close-time TEXT
   --limit INTEGER
-  --help
+  --help                          Show this message and
+                                  exit.
 ```
 
 #### Hosts
@@ -137,10 +158,15 @@ Usage: edgescan hosts [OPTIONS] COMMAND [ARGS]...
   Query or count hosts.
 
 Options:
-  --help
+  --help  Show this message and exit.
 
 Commands:
   count-hosts
+  count-hosts-by-asset-group-name
+  count-hosts-by-last-seen-time
+  count-hosts-by-os-type
+  count-hosts-by-os-version
+  count-hosts-by-status
   get-host
   get-hosts
 ```
@@ -155,15 +181,28 @@ Usage: edgescan hosts get-hosts [OPTIONS]
 
 Options:
   --ids TEXT
-  --hostnames TEXT
   --asset-ids TEXT
   --asset-tags TEXT
   --ip-addresses TEXT
+  --hostnames TEXT
   --os-types TEXT
   --os-versions TEXT
   --alive / --dead
+  --min-update-time TEXT
+  --max-update-time TEXT
+  --vulnerability-ids TEXT
+  --cve-ids TEXT
+  --min-vulnerability-create-time TEXT
+  --max-vulnerability-create-time TEXT
+  --min-vulnerability-update-time TEXT
+  --max-vulnerability-update-time TEXT
+  --min-vulnerability-open-time TEXT
+  --max-vulnerability-open-time TEXT
+  --min-vulnerability-close-time TEXT
+  --max-vulnerability-close-time TEXT
   --limit INTEGER
-  --help
+  --help                          Show this message and
+                                  exit.
 ```
 
 #### Vulnerabilities
@@ -178,10 +217,17 @@ Usage: edgescan vulnerabilities [OPTIONS] COMMAND
   Query or count vulnerabilities.
 
 Options:
-  --help
+  --help  Show this message and exit.
 
 Commands:
   count-vulnerabilities
+  count-vulnerabilities-by-asset-group-name
+  count-vulnerabilities-by-close-time
+  count-vulnerabilities-by-cve-id
+  count-vulnerabilities-by-location
+  count-vulnerabilities-by-open-time
+  count-vulnerabilities-by-os-type
+  count-vulnerabilities-by-os-version
   get-vulnerabilities
   get-vulnerability
 ```
@@ -201,12 +247,23 @@ Options:
   --cve-ids TEXT
   --asset-ids TEXT
   --asset-tags TEXT
-  --ip-addresses TEXT
+  --locations TEXT
+  --os-types TEXT
+  --os-versions TEXT
   --affects-pci-compliance / --does-not-affect-pci-compliance
   --include-application-layer-vulnerabilities / --exclude-application-layer-vulnerabilities
   --include-network-layer-vulnerabilities / --exclude-network-layer-vulnerabilities
+  --min-create-time TEXT
+  --max-create-time TEXT
+  --min-update-time TEXT
+  --max-update-time TEXT
+  --min-open-time TEXT
+  --max-open-time TEXT
+  --min-close-time TEXT
+  --max-close-time TEXT
   --limit INTEGER
-  --help
+  --help                          Show this message and
+                                  exit.
 ```
 
 #### Licenses
@@ -435,25 +492,19 @@ print(txt)
 
 #### Count vulnerabilities by location (i.e. by IP address or hostname)
 
-As an example, let's list the number of vulnerabilities associated with all Windows hosts by IP address:
+As an example, let's list the number of vulnerabilities associated with all hosts by IP address or hostname:
 
 ```python
 from edgescan.api.client import EdgeScan
 
 import json
 import collections
-import ipaddress
 
 api = EdgeScan()
 
 tally = collections.defaultdict(int)
-for vulnerability in api.get_vulnerabilities(os_types=['windows']):
-    try:
-        ip = str(ipaddress.ip_address(vulnerability.location))
-    except ValueError:
-        continue
-    else:
-        tally[ip] += 1
+for vulnerability in api.get_vulnerabilities():
+    tally[vulnerability.location] += 1
 
 txt = json.dumps(tally, indent=4)
 print(txt)
@@ -468,5 +519,3 @@ print(txt)
     "172.217.165.3": 33,
 }
 ```
-
-> Since the value of `vulnerability.location` can be either a hostname, or an IP address we can use the `ipaddress` module to distinguish between the two.

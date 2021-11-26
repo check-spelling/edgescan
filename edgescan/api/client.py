@@ -1,3 +1,4 @@
+import itertools
 from typing import List, Iterator, Any, Optional, Union
 from edgescan.api.authentication import DEFAULT_API_KEY
 from edgescan.api.host import DEFAULT_HOST
@@ -205,10 +206,10 @@ class EdgeScan:
     def count_hosts(
             self,
             ids: Optional[List[int]] = None,
-            hostnames: Optional[List[str]] = None,
             asset_ids: Optional[List[int]] = None,
             asset_tags: Optional[List[str]] = None,
             ip_addresses: Optional[List[str]] = None,
+            hostnames: Optional[List[str]] = None,
             os_types: Optional[List[str]] = None,
             os_versions: Optional[List[str]] = None,
             alive: Optional[bool] = None,
@@ -445,6 +446,8 @@ class EdgeScan:
             asset_ids: Optional[List[int]] = None,
             asset_tags: Optional[List[str]] = None,
             locations: Optional[List[str]] = None,
+            os_types: Optional[List[str]] = None,
+            os_versions: Optional[List[str]] = None,
             affects_pci_compliance: Optional[bool] = None,
             include_application_layer_vulnerabilities: Optional[bool] = True,
             include_network_layer_vulnerabilities: Optional[bool] = True,
@@ -465,6 +468,8 @@ class EdgeScan:
             asset_ids=asset_ids,
             asset_tags=asset_tags,
             locations=locations,
+            os_types=os_types,
+            os_versions=os_versions,
             affects_pci_compliance=affects_pci_compliance,
             include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
             include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
@@ -487,6 +492,8 @@ class EdgeScan:
             asset_ids: Optional[List[int]] = None,
             asset_tags: Optional[List[str]] = None,
             locations: Optional[List[str]] = None,
+            os_types: Optional[List[str]] = None,
+            os_versions: Optional[List[str]] = None,
             affects_pci_compliance: Optional[bool] = None,
             include_application_layer_vulnerabilities: Optional[bool] = None,
             include_network_layer_vulnerabilities: Optional[bool] = None,
@@ -500,9 +507,15 @@ class EdgeScan:
             max_close_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
             limit: Optional[int] = None) -> Iterator[Vulnerability]:
 
+        #: If filtering vulnerabilities by asset tag.
         if asset_tags:
             assets = self.iter_assets(ids=asset_ids, tags=asset_tags)
             asset_ids = {asset.id for asset in assets}
+
+        #: If filtering vulnerabilities by host metadata (e.g. OS type or version).
+        if os_types or os_versions:
+            hosts = self.iter_hosts(asset_ids=asset_ids, os_types=os_types, os_versions=os_versions)
+            locations = list(set(itertools.chain.from_iterable(host.locations for host in hosts)))
 
         i = 0
         for vulnerability in self._iter_objects(url=self.vulnerabilities_url):
@@ -541,6 +554,8 @@ class EdgeScan:
             asset_ids: Optional[List[int]] = None,
             asset_tags: Optional[List[str]] = None,
             locations: Optional[List[str]] = None,
+            os_types: Optional[List[str]] = None,
+            os_versions: Optional[List[str]] = None,
             affects_pci_compliance: Optional[bool] = None,
             include_application_layer_vulnerabilities: Optional[bool] = None,
             include_network_layer_vulnerabilities: Optional[bool] = None,
@@ -560,6 +575,8 @@ class EdgeScan:
             asset_ids=asset_ids,
             asset_tags=asset_tags,
             locations=locations,
+            os_types=os_types,
+            os_versions=os_versions,
             affects_pci_compliance=affects_pci_compliance,
             include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
             include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,

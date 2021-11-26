@@ -1,3 +1,4 @@
+from typing import Optional
 from edgescan.api.client import EdgeScan
 
 import edgescan.cli.click as click
@@ -28,7 +29,13 @@ def get_license(ctx: click.Context, license_id: int):
 @click.option('--expired/--not-expired', default=None)
 @click.option('--limit', type=int)
 @click.pass_context
-def get_licenses(ctx: click.Context, ids: str, names: str, expired: bool, limit: int):
+def get_licenses(
+        ctx: click.Context,
+        ids: Optional[str],
+        names: Optional[str],
+        expired: Optional[bool],
+        limit: Optional[int]):
+
     api = EdgeScan(**ctx.obj['config']['edgescan']['api'])
     for row in api.iter_licenses(
         ids=click.str_to_ints(ids),
@@ -44,7 +51,7 @@ def get_licenses(ctx: click.Context, ids: str, names: str, expired: bool, limit:
 @click.option('--names')
 @click.option('--expired/--not-expired', default=None)
 @click.pass_context
-def count_licenses(ctx: click.Context, ids: str, names: str, expired: bool):
+def count_licenses(ctx: click.Context, ids: Optional[str], names: Optional[str], expired: Optional[bool]):
     api = EdgeScan(**ctx.obj['config']['edgescan']['api'])
     total = api.count_licenses(
         ids=click.str_to_ints(ids),
