@@ -108,6 +108,8 @@ Commands:
   get-asset
   get-asset-tags
   get-assets
+  get-host-ips-by-asset-name
+  get-hostnames-by-asset-name
 ```
 
 ##### List assets
@@ -119,21 +121,30 @@ $ poetry run edgescan assets get-assets --help
 Usage: edgescan assets get-assets [OPTIONS]
 
 Options:
-  --ids TEXT
-  --names TEXT
-  --tags TEXT
-  --min-create-time TEXT
-  --max-create-time TEXT
-  --min-update-time TEXT
-  --max-update-time TEXT
+  --asset-ids TEXT
+  --asset-names TEXT
+  --asset-tags TEXT
+  --host-ids TEXT
+  --hostnames TEXT
+  --ip-addresses TEXT
+  --os-types TEXT
+  --os-versions TEXT
+  --alive / --dead
+  --vulnerability-ids TEXT
+  --vulnerability-names TEXT
+  --cve-ids TEXT
+  --min-asset-create-time TEXT
+  --max-asset-create-time TEXT
+  --min-asset-update-time TEXT
+  --max-asset-update-time TEXT
   --min-next-assessment-time TEXT
   --max-next-assessment-time TEXT
   --min-last-assessment-time TEXT
   --max-last-assessment-time TEXT
   --min-last-host-scan-time TEXT
   --max-last-host-scan-time TEXT
-  --vulnerability-ids TEXT
-  --cve-ids TEXT
+  --min-host-last-seen-time TEXT
+  --max-host-last-seen-time TEXT
   --min-vulnerability-create-time TEXT
   --max-vulnerability-create-time TEXT
   --min-vulnerability-update-time TEXT
@@ -180,18 +191,30 @@ $ poetry run edgescan hosts get-hosts --help
 Usage: edgescan hosts get-hosts [OPTIONS]
 
 Options:
-  --ids TEXT
   --asset-ids TEXT
+  --asset-names TEXT
   --asset-tags TEXT
-  --ip-addresses TEXT
+  --host-ids TEXT
   --hostnames TEXT
+  --ip-addresses TEXT
   --os-types TEXT
   --os-versions TEXT
   --alive / --dead
-  --min-update-time TEXT
-  --max-update-time TEXT
   --vulnerability-ids TEXT
+  --vulnerability-names TEXT
   --cve-ids TEXT
+  --min-asset-create-time TEXT
+  --max-asset-create-time TEXT
+  --min-asset-update-time TEXT
+  --max-asset-update-time TEXT
+  --min-next-assessment-time TEXT
+  --max-next-assessment-time TEXT
+  --min-last-assessment-time TEXT
+  --max-last-assessment-time TEXT
+  --min-last-host-scan-time TEXT
+  --max-last-host-scan-time TEXT
+  --min-host-last-seen-time TEXT
+  --max-host-last-seen-time TEXT
   --min-vulnerability-create-time TEXT
   --max-vulnerability-create-time TEXT
   --min-vulnerability-update-time TEXT
@@ -211,8 +234,7 @@ The following options are available when working with vulnerabilities:
 
 ```shell
 $ poetry run edgescan vulnerabilities --help
-Usage: edgescan vulnerabilities [OPTIONS] COMMAND
-                                [ARGS]...
+Usage: edgescan vulnerabilities [OPTIONS] COMMAND [ARGS]...
 
   Query or count vulnerabilities.
 
@@ -238,29 +260,45 @@ The following options are available when listing vulnerabilities:
 
 ```shell
 $ poetry run edgescan vulnerabilities get-vulnerabilities --help
-Usage: edgescan vulnerabilities get-vulnerabilities 
+Usage: edgescan vulnerabilities get-vulnerabilities
            [OPTIONS]
 
 Options:
-  --ids TEXT
-  --names TEXT
-  --cve-ids TEXT
   --asset-ids TEXT
+  --asset-names TEXT
   --asset-tags TEXT
-  --locations TEXT
+  --host-ids TEXT
+  --hostnames TEXT
+  --ip-addresses TEXT
   --os-types TEXT
   --os-versions TEXT
+  --alive / --dead
+  --vulnerability-ids TEXT
+  --vulnerability-names TEXT
   --affects-pci-compliance / --does-not-affect-pci-compliance
   --include-application-layer-vulnerabilities / --exclude-application-layer-vulnerabilities
   --include-network-layer-vulnerabilities / --exclude-network-layer-vulnerabilities
-  --min-create-time TEXT
-  --max-create-time TEXT
-  --min-update-time TEXT
-  --max-update-time TEXT
-  --min-open-time TEXT
-  --max-open-time TEXT
-  --min-close-time TEXT
-  --max-close-time TEXT
+  --cve-ids TEXT
+  --min-asset-create-time TEXT
+  --max-asset-create-time TEXT
+  --min-asset-update-time TEXT
+  --max-asset-update-time TEXT
+  --min-next-assessment-time TEXT
+  --max-next-assessment-time TEXT
+  --min-last-assessment-time TEXT
+  --max-last-assessment-time TEXT
+  --min-last-host-scan-time TEXT
+  --max-last-host-scan-time TEXT
+  --min-host-last-seen-time TEXT
+  --max-host-last-seen-time TEXT
+  --min-vulnerability-create-time TEXT
+  --max-vulnerability-create-time TEXT
+  --min-vulnerability-update-time TEXT
+  --max-vulnerability-update-time TEXT
+  --min-vulnerability-open-time TEXT
+  --max-vulnerability-open-time TEXT
+  --min-vulnerability-close-time TEXT
+  --max-vulnerability-close-time TEXT
   --limit INTEGER
   --help                          Show this message and
                                   exit.
