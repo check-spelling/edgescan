@@ -1,7 +1,8 @@
 from typing import Optional
 from edgescan.api.client import EdgeScan
 
-import edgescan.cli.click as click
+import edgescan.cli.cli_helpers as cli
+import click
 
 
 @click.group()
@@ -14,7 +15,7 @@ def licenses(_):
 
 
 @licenses.command()
-@click.option('--id', 'license_id', type=int, required=True)
+@click.option('--license-id', type=int, required=True)
 @click.pass_context
 def get_license(ctx: click.Context, license_id: int):
     api = EdgeScan(**ctx.obj['config']['edgescan']['api'])
@@ -24,22 +25,22 @@ def get_license(ctx: click.Context, license_id: int):
 
 
 @licenses.command()
-@click.option('--ids')
-@click.option('--names')
+@click.option('--license-ids')
+@click.option('--license-names')
 @click.option('--expired/--not-expired', default=None)
 @click.option('--limit', type=int)
 @click.pass_context
 def get_licenses(
         ctx: click.Context,
-        ids: Optional[str],
-        names: Optional[str],
+        license_ids: Optional[str],
+        license_names: Optional[str],
         expired: Optional[bool],
         limit: Optional[int]):
 
     api = EdgeScan(**ctx.obj['config']['edgescan']['api'])
     for row in api.iter_licenses(
-        ids=click.str_to_ints(ids),
-        names=click.str_to_strs(names),
+        ids=cli.str_to_ints(license_ids),
+        names=cli.str_to_strs(license_names),
         expired=expired,
         limit=limit,
     ):
@@ -47,15 +48,15 @@ def get_licenses(
 
 
 @licenses.command()
-@click.option('--ids')
-@click.option('--names')
+@click.option('--license-ids')
+@click.option('--license-names')
 @click.option('--expired/--not-expired', default=None)
 @click.pass_context
-def count_licenses(ctx: click.Context, ids: Optional[str], names: Optional[str], expired: Optional[bool]):
+def count_licenses(ctx: click.Context, license_ids: Optional[str], license_names: Optional[str], expired: Optional[bool]):
     api = EdgeScan(**ctx.obj['config']['edgescan']['api'])
     total = api.count_licenses(
-        ids=click.str_to_ints(ids),
-        names=click.str_to_strs(names),
+        ids=cli.str_to_ints(license_ids),
+        names=cli.str_to_strs(license_names),
         expired=expired,
     )
     click.echo(total)

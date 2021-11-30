@@ -79,3 +79,6 @@ class Asset(Object):
                     not hodgepodge.time.in_range(timestamp, min_timestamp, max_timestamp):
                 return False
         return True
+
+    def __hash__(self):
+        return self.id

@@ -1,5 +1,4 @@
 from typing import List, Optional
-from click import *
 
 import hodgepodge.click
 import hodgepodge.time

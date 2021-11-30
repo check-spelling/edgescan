@@ -42,3 +42,6 @@ class Assessment(Object):
                 not hodgepodge.time.in_range(self.create_time, minimum=min_create_time, maximum=max_create_time):
             return False
         return True
+
+    def __hash__(self):
+        return self.id

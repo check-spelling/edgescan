@@ -24,3 +24,7 @@ class Object:
             sort_keys=sort_keys,
             remove_empty_values=remove_empty_values,
         )
+
+    def __hash__(self):
+        return self.id
+

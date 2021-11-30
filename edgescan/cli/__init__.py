@@ -5,7 +5,7 @@ from edgescan.cli.command_groups.hosts import hosts
 from edgescan.cli.command_groups.licenses import licenses
 from edgescan.cli.command_groups.vulnerabilities import vulnerabilities
 
-import edgescan.cli.click as click
+import click
 import os
 
 _env = os.environ

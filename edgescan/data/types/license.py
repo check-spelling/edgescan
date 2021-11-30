@@ -54,3 +54,6 @@ class License(Object):
                 continue
 
         return True
+
+    def __hash__(self):
+        return self.id

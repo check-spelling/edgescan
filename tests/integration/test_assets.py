@@ -1,6 +1,6 @@
 from unittest import TestCase
 from edgescan.data.types.asset import Asset
-from tests.integration.api_client import get_api_client
+from tests.api_client import get_api_client
 
 import unittest
 

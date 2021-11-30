@@ -20,3 +20,6 @@ class LocationSpecifier(Object):
 
     def is_cidr(self) -> bool:
         return self.location_type == CIDR
+
+    def __hash__(self):
+        return self.id

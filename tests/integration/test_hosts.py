@@ -1,16 +1,15 @@
-from unittest import TestCase
 from edgescan.data.types.host import Host
-from tests.integration.api_client import get_api_client
 
+import tests.api_client as client
 import unittest
 
 
-class HostIntegrationTestCases(TestCase):
+class HostTestCases(unittest.TestCase):
     edgescan_api = None
 
     @classmethod
     def setUpClass(cls):
-        cls.edgescan_api = get_api_client()
+        cls.edgescan_api = client.get_api_client()
         try:
             next(cls.edgescan_api.iter_hosts(limit=1))
         except StopIteration:

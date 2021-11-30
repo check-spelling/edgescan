@@ -4,7 +4,8 @@ from edgescan.constants import DEFAULT_INDENT, SORT_KEYS_BY_DEFAULT
 from hodgepodge.time import HOUR, DAY, MONTH
 
 import hodgepodge.time
-import edgescan.cli.click as click
+import edgescan.cli.cli_helpers as cli
+import click
 import collections
 import json
 
@@ -19,7 +20,7 @@ def vulnerabilities(_):
 
 
 @vulnerabilities.command()
-@click.option('--id', 'vulnerability_id', type=int, required=True)
+@click.option('--vulnerability-id', type=int, required=True)
 @click.pass_context
 def get_vulnerability(ctx: click.Context, vulnerability_id: int):
     api = EdgeScan(**ctx.obj['config']['edgescan']['api'])
@@ -29,628 +30,957 @@ def get_vulnerability(ctx: click.Context, vulnerability_id: int):
 
 
 @vulnerabilities.command()
-@click.option('--ids')
-@click.option('--names')
-@click.option('--cve-ids')
 @click.option('--asset-ids')
+@click.option('--asset-names')
 @click.option('--asset-tags')
-@click.option('--locations')
+@click.option('--host-ids')
+@click.option('--hostnames')
+@click.option('--ip-addresses')
 @click.option('--os-types')
 @click.option('--os-versions')
+@click.option('--alive/--dead', default=None)
+@click.option('--vulnerability-ids')
+@click.option('--vulnerability-names')
 @click.option('--affects-pci-compliance/--does-not-affect-pci-compliance', default=None)
 @click.option('--include-application-layer-vulnerabilities/--exclude-application-layer-vulnerabilities', default=True)
 @click.option('--include-network-layer-vulnerabilities/--exclude-network-layer-vulnerabilities', default=True)
-@click.option('--min-create-time')
-@click.option('--max-create-time')
-@click.option('--min-update-time')
-@click.option('--max-update-time')
-@click.option('--min-open-time')
-@click.option('--max-open-time')
-@click.option('--min-close-time')
-@click.option('--max-close-time')
+@click.option('--cve-ids')
+@click.option('--min-asset-create-time')
+@click.option('--max-asset-create-time')
+@click.option('--min-asset-update-time')
+@click.option('--max-asset-update-time')
+@click.option('--min-next-assessment-time')
+@click.option('--max-next-assessment-time')
+@click.option('--min-last-assessment-time')
+@click.option('--max-last-assessment-time')
+@click.option('--min-last-host-scan-time')
+@click.option('--max-last-host-scan-time')
+@click.option('--min-host-last-seen-time')
+@click.option('--max-host-last-seen-time')
+@click.option('--min-vulnerability-create-time')
+@click.option('--max-vulnerability-create-time')
+@click.option('--min-vulnerability-update-time')
+@click.option('--max-vulnerability-update-time')
+@click.option('--min-vulnerability-open-time')
+@click.option('--max-vulnerability-open-time')
+@click.option('--min-vulnerability-close-time')
+@click.option('--max-vulnerability-close-time')
 @click.option('--limit', type=int)
 @click.pass_context
 def get_vulnerabilities(
         ctx: click.Context,
-        ids: Optional[str],
-        names: Optional[str],
-        cve_ids: Optional[str],
         asset_ids: Optional[str],
+        asset_names: Optional[str],
         asset_tags: Optional[str],
-        locations: Optional[str],
+        host_ids: Optional[str],
+        hostnames: Optional[str],
+        ip_addresses: Optional[str],
         os_types: Optional[str],
         os_versions: Optional[str],
+        alive: Optional[bool],
+        vulnerability_ids: Optional[str],
+        vulnerability_names: Optional[str],
         affects_pci_compliance: Optional[bool],
         include_application_layer_vulnerabilities: Optional[bool],
         include_network_layer_vulnerabilities: Optional[bool],
-        min_create_time: Optional[str],
-        max_create_time: Optional[str],
-        min_update_time: Optional[str],
-        max_update_time: Optional[str],
-        min_open_time: Optional[str],
-        max_open_time: Optional[str],
-        min_close_time: Optional[str],
-        max_close_time: Optional[str],
+        cve_ids: Optional[str],
+        min_asset_create_time: Optional[str],
+        max_asset_create_time: Optional[str],
+        min_asset_update_time: Optional[str],
+        max_asset_update_time: Optional[str],
+        min_next_assessment_time: Optional[str],
+        max_next_assessment_time: Optional[str],
+        min_last_assessment_time: Optional[str],
+        max_last_assessment_time: Optional[str],
+        min_last_host_scan_time: Optional[str],
+        max_last_host_scan_time: Optional[str],
+        min_host_last_seen_time: Optional[str],
+        max_host_last_seen_time: Optional[str],
+        min_vulnerability_create_time: Optional[str],
+        max_vulnerability_create_time: Optional[str],
+        min_vulnerability_update_time: Optional[str],
+        max_vulnerability_update_time: Optional[str],
+        min_vulnerability_open_time: Optional[str],
+        max_vulnerability_open_time: Optional[str],
+        min_vulnerability_close_time: Optional[str],
+        max_vulnerability_close_time: Optional[str],
         limit: int):
 
     api = EdgeScan(**ctx.obj['config']['edgescan']['api'])
     for vulnerability in api.iter_vulnerabilities(
-            ids=click.str_to_ints(ids),
-            names=click.str_to_strs(names),
-            cve_ids=click.str_to_strs(cve_ids),
-            asset_ids=click.str_to_ints(asset_ids),
-            asset_tags=click.str_to_strs(asset_tags),
-            locations=click.str_to_strs(locations),
-            os_types=click.str_to_strs(os_types),
-            os_versions=click.str_to_strs(os_versions),
-            affects_pci_compliance=affects_pci_compliance,
-            include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
-            include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
-            min_create_time=click.str_to_datetime(min_create_time),
-            max_create_time=click.str_to_datetime(max_create_time),
-            min_update_time=click.str_to_datetime(min_update_time),
-            max_update_time=click.str_to_datetime(max_update_time),
-            min_open_time=click.str_to_datetime(min_open_time),
-            max_open_time=click.str_to_datetime(max_open_time),
-            min_close_time=click.str_to_datetime(min_close_time),
-            max_close_time=click.str_to_datetime(max_close_time),
-            limit=limit,
+        ids=cli.str_to_ints(vulnerability_ids),
+        names=cli.str_to_strs(vulnerability_names),
+        cve_ids=cli.str_to_strs(cve_ids),
+        affects_pci_compliance=affects_pci_compliance,
+        include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
+        include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
+        host_ids=cli.str_to_ints(host_ids),
+        hostnames=cli.str_to_strs(hostnames),
+        ip_addresses=cli.str_to_strs(ip_addresses),
+        os_types=cli.str_to_strs(os_types),
+        os_versions=cli.str_to_strs(os_versions),
+        alive=alive,
+        asset_ids=cli.str_to_ints(asset_ids),
+        asset_names=cli.str_to_strs(asset_names),
+        asset_tags=cli.str_to_strs(asset_tags),
+        min_asset_create_time=cli.str_to_datetime(min_asset_create_time),
+        max_asset_create_time=cli.str_to_datetime(max_asset_create_time),
+        min_asset_update_time=cli.str_to_datetime(min_asset_update_time),
+        max_asset_update_time=cli.str_to_datetime(max_asset_update_time),
+        min_next_assessment_time=cli.str_to_datetime(min_next_assessment_time),
+        max_next_assessment_time=cli.str_to_datetime(max_next_assessment_time),
+        min_last_assessment_time=cli.str_to_datetime(min_last_assessment_time),
+        max_last_assessment_time=cli.str_to_datetime(max_last_assessment_time),
+        min_last_host_scan_time=cli.str_to_datetime(min_last_host_scan_time),
+        max_last_host_scan_time=cli.str_to_datetime(max_last_host_scan_time),
+        min_host_last_seen_time=cli.str_to_datetime(min_host_last_seen_time),
+        max_host_last_seen_time=cli.str_to_datetime(max_host_last_seen_time),
+        min_vulnerability_create_time=cli.str_to_datetime(min_vulnerability_create_time),
+        max_vulnerability_create_time=cli.str_to_datetime(max_vulnerability_create_time),
+        min_vulnerability_update_time=cli.str_to_datetime(min_vulnerability_update_time),
+        max_vulnerability_update_time=cli.str_to_datetime(max_vulnerability_update_time),
+        min_vulnerability_open_time=cli.str_to_datetime(min_vulnerability_open_time),
+        max_vulnerability_open_time=cli.str_to_datetime(max_vulnerability_open_time),
+        min_vulnerability_close_time=cli.str_to_datetime(min_vulnerability_close_time),
+        max_vulnerability_close_time=cli.str_to_datetime(max_vulnerability_close_time),
+        limit=limit,
     ):
         click.echo(vulnerability.to_json())
 
 
 @vulnerabilities.command()
-@click.option('--ids')
-@click.option('--names')
-@click.option('--cve-ids')
 @click.option('--asset-ids')
+@click.option('--asset-names')
 @click.option('--asset-tags')
-@click.option('--locations')
+@click.option('--host-ids')
+@click.option('--hostnames')
+@click.option('--ip-addresses')
 @click.option('--os-types')
 @click.option('--os-versions')
+@click.option('--alive/--dead', default=None)
+@click.option('--vulnerability-ids')
+@click.option('--vulnerability-names')
 @click.option('--affects-pci-compliance/--does-not-affect-pci-compliance', default=None)
 @click.option('--include-application-layer-vulnerabilities/--exclude-application-layer-vulnerabilities', default=True)
 @click.option('--include-network-layer-vulnerabilities/--exclude-network-layer-vulnerabilities', default=True)
-@click.option('--min-create-time')
-@click.option('--max-create-time')
-@click.option('--min-update-time')
-@click.option('--max-update-time')
-@click.option('--min-open-time')
-@click.option('--max-open-time')
-@click.option('--min-close-time')
-@click.option('--max-close-time')
+@click.option('--cve-ids')
+@click.option('--min-asset-create-time')
+@click.option('--max-asset-create-time')
+@click.option('--min-asset-update-time')
+@click.option('--max-asset-update-time')
+@click.option('--min-next-assessment-time')
+@click.option('--max-next-assessment-time')
+@click.option('--min-last-assessment-time')
+@click.option('--max-last-assessment-time')
+@click.option('--min-last-host-scan-time')
+@click.option('--max-last-host-scan-time')
+@click.option('--min-host-last-seen-time')
+@click.option('--max-host-last-seen-time')
+@click.option('--min-vulnerability-create-time')
+@click.option('--max-vulnerability-create-time')
+@click.option('--min-vulnerability-update-time')
+@click.option('--max-vulnerability-update-time')
+@click.option('--min-vulnerability-open-time')
+@click.option('--max-vulnerability-open-time')
+@click.option('--min-vulnerability-close-time')
+@click.option('--max-vulnerability-close-time')
 @click.pass_context
 def count_vulnerabilities(
         ctx: click.Context,
-        ids: Optional[str],
-        names: Optional[str],
-        cve_ids: Optional[str],
         asset_ids: Optional[str],
+        asset_names: Optional[str],
         asset_tags: Optional[str],
-        locations: Optional[str],
+        host_ids: Optional[str],
+        hostnames: Optional[str],
+        ip_addresses: Optional[str],
         os_types: Optional[str],
         os_versions: Optional[str],
+        alive: Optional[bool],
+        vulnerability_ids: Optional[str],
+        vulnerability_names: Optional[str],
         affects_pci_compliance: Optional[bool],
         include_application_layer_vulnerabilities: Optional[bool],
         include_network_layer_vulnerabilities: Optional[bool],
-        min_create_time: Optional[str],
-        max_create_time: Optional[str],
-        min_update_time: Optional[str],
-        max_update_time: Optional[str],
-        min_open_time: Optional[str],
-        max_open_time: Optional[str],
-        min_close_time: Optional[str],
-        max_close_time: Optional[str]):
+        cve_ids: Optional[str],
+        min_asset_create_time: Optional[str],
+        max_asset_create_time: Optional[str],
+        min_asset_update_time: Optional[str],
+        max_asset_update_time: Optional[str],
+        min_next_assessment_time: Optional[str],
+        max_next_assessment_time: Optional[str],
+        min_last_assessment_time: Optional[str],
+        max_last_assessment_time: Optional[str],
+        min_last_host_scan_time: Optional[str],
+        max_last_host_scan_time: Optional[str],
+        min_host_last_seen_time: Optional[str],
+        max_host_last_seen_time: Optional[str],
+        min_vulnerability_create_time: Optional[str],
+        max_vulnerability_create_time: Optional[str],
+        min_vulnerability_update_time: Optional[str],
+        max_vulnerability_update_time: Optional[str],
+        min_vulnerability_open_time: Optional[str],
+        max_vulnerability_open_time: Optional[str],
+        min_vulnerability_close_time: Optional[str],
+        max_vulnerability_close_time: Optional[str]):
 
     api = EdgeScan(**ctx.obj['config']['edgescan']['api'])
     total = api.count_vulnerabilities(
-        ids=click.str_to_ints(ids),
-        names=click.str_to_strs(names),
-        cve_ids=click.str_to_strs(cve_ids),
-        asset_ids=click.str_to_ints(asset_ids),
-        asset_tags=click.str_to_strs(asset_tags),
-        locations=click.str_to_strs(locations),
-        os_types=click.str_to_strs(os_types),
-        os_versions=click.str_to_strs(os_versions),
+        ids=cli.str_to_ints(vulnerability_ids),
+        names=cli.str_to_strs(vulnerability_names),
+        cve_ids=cli.str_to_strs(cve_ids),
         affects_pci_compliance=affects_pci_compliance,
         include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
         include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
-        min_create_time=click.str_to_datetime(min_create_time),
-        max_create_time=click.str_to_datetime(max_create_time),
-        min_update_time=click.str_to_datetime(min_update_time),
-        max_update_time=click.str_to_datetime(max_update_time),
-        min_open_time=click.str_to_datetime(min_open_time),
-        max_open_time=click.str_to_datetime(max_open_time),
-        min_close_time=click.str_to_datetime(min_close_time),
-        max_close_time=click.str_to_datetime(max_close_time),
+        host_ids=cli.str_to_ints(host_ids),
+        hostnames=cli.str_to_strs(hostnames),
+        ip_addresses=cli.str_to_strs(ip_addresses),
+        os_types=cli.str_to_strs(os_types),
+        os_versions=cli.str_to_strs(os_versions),
+        alive=alive,
+        asset_ids=cli.str_to_ints(asset_ids),
+        asset_names=cli.str_to_strs(asset_names),
+        asset_tags=cli.str_to_strs(asset_tags),
+        min_asset_create_time=cli.str_to_datetime(min_asset_create_time),
+        max_asset_create_time=cli.str_to_datetime(max_asset_create_time),
+        min_asset_update_time=cli.str_to_datetime(min_asset_update_time),
+        max_asset_update_time=cli.str_to_datetime(max_asset_update_time),
+        min_next_assessment_time=cli.str_to_datetime(min_next_assessment_time),
+        max_next_assessment_time=cli.str_to_datetime(max_next_assessment_time),
+        min_last_assessment_time=cli.str_to_datetime(min_last_assessment_time),
+        max_last_assessment_time=cli.str_to_datetime(max_last_assessment_time),
+        min_last_host_scan_time=cli.str_to_datetime(min_last_host_scan_time),
+        max_last_host_scan_time=cli.str_to_datetime(max_last_host_scan_time),
+        min_host_last_seen_time=cli.str_to_datetime(min_host_last_seen_time),
+        max_host_last_seen_time=cli.str_to_datetime(max_host_last_seen_time),
+        min_vulnerability_create_time=cli.str_to_datetime(min_vulnerability_create_time),
+        max_vulnerability_create_time=cli.str_to_datetime(max_vulnerability_create_time),
+        min_vulnerability_update_time=cli.str_to_datetime(min_vulnerability_update_time),
+        max_vulnerability_update_time=cli.str_to_datetime(max_vulnerability_update_time),
+        min_vulnerability_open_time=cli.str_to_datetime(min_vulnerability_open_time),
+        max_vulnerability_open_time=cli.str_to_datetime(max_vulnerability_open_time),
+        min_vulnerability_close_time=cli.str_to_datetime(min_vulnerability_close_time),
+        max_vulnerability_close_time=cli.str_to_datetime(max_vulnerability_close_time),
     )
     click.echo(total)
 
 
 @vulnerabilities.command()
-@click.option('--ids')
-@click.option('--names')
-@click.option('--cve-ids')
 @click.option('--asset-ids')
+@click.option('--asset-names')
 @click.option('--asset-tags')
-@click.option('--locations')
+@click.option('--host-ids')
+@click.option('--hostnames')
+@click.option('--ip-addresses')
 @click.option('--os-types')
 @click.option('--os-versions')
+@click.option('--alive/--dead', default=None)
+@click.option('--vulnerability-ids')
+@click.option('--vulnerability-names')
 @click.option('--affects-pci-compliance/--does-not-affect-pci-compliance', default=None)
 @click.option('--include-application-layer-vulnerabilities/--exclude-application-layer-vulnerabilities', default=True)
 @click.option('--include-network-layer-vulnerabilities/--exclude-network-layer-vulnerabilities', default=True)
-@click.option('--min-create-time')
-@click.option('--max-create-time')
-@click.option('--min-update-time')
-@click.option('--max-update-time')
-@click.option('--min-open-time')
-@click.option('--max-open-time')
-@click.option('--min-close-time')
-@click.option('--max-close-time')
+@click.option('--cve-ids')
+@click.option('--min-asset-create-time')
+@click.option('--max-asset-create-time')
+@click.option('--min-asset-update-time')
+@click.option('--max-asset-update-time')
+@click.option('--min-next-assessment-time')
+@click.option('--max-next-assessment-time')
+@click.option('--min-last-assessment-time')
+@click.option('--max-last-assessment-time')
+@click.option('--min-last-host-scan-time')
+@click.option('--max-last-host-scan-time')
+@click.option('--min-host-last-seen-time')
+@click.option('--max-host-last-seen-time')
+@click.option('--min-vulnerability-create-time')
+@click.option('--max-vulnerability-create-time')
+@click.option('--min-vulnerability-update-time')
+@click.option('--max-vulnerability-update-time')
+@click.option('--min-vulnerability-open-time')
+@click.option('--max-vulnerability-open-time')
+@click.option('--min-vulnerability-close-time')
+@click.option('--max-vulnerability-close-time')
 @click.pass_context
 def count_vulnerabilities_by_asset_group_name(
         ctx: click.Context,
-        ids: Optional[str],
-        names: Optional[str],
-        cve_ids: Optional[str],
         asset_ids: Optional[str],
+        asset_names: Optional[str],
         asset_tags: Optional[str],
-        locations: Optional[str],
+        host_ids: Optional[str],
+        hostnames: Optional[str],
+        ip_addresses: Optional[str],
         os_types: Optional[str],
         os_versions: Optional[str],
+        alive: Optional[bool],
+        vulnerability_ids: Optional[str],
+        vulnerability_names: Optional[str],
         affects_pci_compliance: Optional[bool],
         include_application_layer_vulnerabilities: Optional[bool],
         include_network_layer_vulnerabilities: Optional[bool],
-        min_create_time: Optional[str],
-        max_create_time: Optional[str],
-        min_update_time: Optional[str],
-        max_update_time: Optional[str],
-        min_open_time: Optional[str],
-        max_open_time: Optional[str],
-        min_close_time: Optional[str],
-        max_close_time: Optional[str]):
+        cve_ids: Optional[str],
+        min_asset_create_time: Optional[str],
+        max_asset_create_time: Optional[str],
+        min_asset_update_time: Optional[str],
+        max_asset_update_time: Optional[str],
+        min_next_assessment_time: Optional[str],
+        max_next_assessment_time: Optional[str],
+        min_last_assessment_time: Optional[str],
+        max_last_assessment_time: Optional[str],
+        min_last_host_scan_time: Optional[str],
+        max_last_host_scan_time: Optional[str],
+        min_host_last_seen_time: Optional[str],
+        max_host_last_seen_time: Optional[str],
+        min_vulnerability_create_time: Optional[str],
+        max_vulnerability_create_time: Optional[str],
+        min_vulnerability_update_time: Optional[str],
+        max_vulnerability_update_time: Optional[str],
+        min_vulnerability_open_time: Optional[str],
+        max_vulnerability_open_time: Optional[str],
+        min_vulnerability_close_time: Optional[str],
+        max_vulnerability_close_time: Optional[str]):
 
     api = EdgeScan(**ctx.obj['config']['edgescan']['api'])
 
-    #: Count vulnerabilities by `asset.id`.
-    vulnerabilities_by_asset_id = collections.defaultdict(int)
-    for vulnerability in api.get_vulnerabilities(
-            ids=click.str_to_ints(ids),
-            names=click.str_to_strs(names),
-            cve_ids=click.str_to_strs(cve_ids),
-            asset_ids=click.str_to_ints(asset_ids),
-            asset_tags=click.str_to_strs(asset_tags),
-            locations=click.str_to_strs(locations),
-            os_types=click.str_to_strs(os_types),
-            os_versions=click.str_to_strs(os_versions),
-            affects_pci_compliance=affects_pci_compliance,
-            include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
-            include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
-            min_create_time=click.str_to_datetime(min_create_time),
-            max_create_time=click.str_to_datetime(max_create_time),
-            min_update_time=click.str_to_datetime(min_update_time),
-            max_update_time=click.str_to_datetime(max_update_time),
-            min_open_time=click.str_to_datetime(min_open_time),
-            max_open_time=click.str_to_datetime(max_open_time),
-            min_close_time=click.str_to_datetime(min_close_time),
-            max_close_time=click.str_to_datetime(max_close_time),
-    ):
-        vulnerabilities_by_asset_id[vulnerability.asset_id] += 1
-
-    #: List the number of vulnerabilities by `asset.name`.
-    tally = {}
-    for asset in api.get_assets():
-        if asset.id in vulnerabilities_by_asset_id:
-            tally[asset.name] = vulnerabilities_by_asset_id[asset.id]
-
-    click.echo(json.dumps(tally, indent=DEFAULT_INDENT, sort_keys=SORT_KEYS_BY_DEFAULT))
+    vulnerabilities_by_asset = api.get_map_of_assets_to_vulnerabilities(
+        cve_ids=cli.str_to_strs(cve_ids),
+        vulnerability_ids=cli.str_to_ints(vulnerability_ids),
+        vulnerability_names=cli.str_to_strs(vulnerability_names),
+        vulnerability_affects_pci_compliance=affects_pci_compliance,
+        include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
+        include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
+        host_ids=cli.str_to_ints(host_ids),
+        hostnames=cli.str_to_strs(hostnames),
+        ip_addresses=cli.str_to_strs(ip_addresses),
+        os_types=cli.str_to_strs(os_types),
+        os_versions=cli.str_to_strs(os_versions),
+        alive=alive,
+        asset_ids=cli.str_to_ints(asset_ids),
+        asset_names=cli.str_to_strs(asset_names),
+        asset_tags=cli.str_to_strs(asset_tags),
+        min_asset_create_time=cli.str_to_datetime(min_asset_create_time),
+        max_asset_create_time=cli.str_to_datetime(max_asset_create_time),
+        min_asset_update_time=cli.str_to_datetime(min_asset_update_time),
+        max_asset_update_time=cli.str_to_datetime(max_asset_update_time),
+        min_next_assessment_time=cli.str_to_datetime(min_next_assessment_time),
+        max_next_assessment_time=cli.str_to_datetime(max_next_assessment_time),
+        min_last_assessment_time=cli.str_to_datetime(min_last_assessment_time),
+        max_last_assessment_time=cli.str_to_datetime(max_last_assessment_time),
+        min_last_host_scan_time=cli.str_to_datetime(min_last_host_scan_time),
+        max_last_host_scan_time=cli.str_to_datetime(max_last_host_scan_time),
+        min_host_last_seen_time=cli.str_to_datetime(min_host_last_seen_time),
+        max_host_last_seen_time=cli.str_to_datetime(max_host_last_seen_time),
+        min_vulnerability_create_time=cli.str_to_datetime(min_vulnerability_create_time),
+        max_vulnerability_create_time=cli.str_to_datetime(max_vulnerability_create_time),
+        min_vulnerability_update_time=cli.str_to_datetime(min_vulnerability_update_time),
+        max_vulnerability_update_time=cli.str_to_datetime(max_vulnerability_update_time),
+        min_vulnerability_open_time=cli.str_to_datetime(min_vulnerability_open_time),
+        max_vulnerability_open_time=cli.str_to_datetime(max_vulnerability_open_time),
+        min_vulnerability_close_time=cli.str_to_datetime(min_vulnerability_close_time),
+        max_vulnerability_close_time=cli.str_to_datetime(max_vulnerability_close_time),
+    )
+    vulnerabilities_by_asset_name = {}
+    for asset, vulns in vulnerabilities_by_asset.items():
+        vulnerabilities_by_asset_name[asset.name] = len(vulns)
+    click.echo(json.dumps(vulnerabilities_by_asset_name, indent=DEFAULT_INDENT, sort_keys=SORT_KEYS_BY_DEFAULT))
 
 
 @vulnerabilities.command()
-@click.option('--ids')
-@click.option('--names')
-@click.option('--cve-ids')
 @click.option('--asset-ids')
+@click.option('--asset-names')
 @click.option('--asset-tags')
-@click.option('--locations')
+@click.option('--host-ids')
+@click.option('--hostnames')
+@click.option('--ip-addresses')
 @click.option('--os-types')
 @click.option('--os-versions')
+@click.option('--alive/--dead', default=None)
+@click.option('--vulnerability-ids')
+@click.option('--vulnerability-names')
 @click.option('--affects-pci-compliance/--does-not-affect-pci-compliance', default=None)
 @click.option('--include-application-layer-vulnerabilities/--exclude-application-layer-vulnerabilities', default=True)
 @click.option('--include-network-layer-vulnerabilities/--exclude-network-layer-vulnerabilities', default=True)
-@click.option('--min-create-time')
-@click.option('--max-create-time')
-@click.option('--min-update-time')
-@click.option('--max-update-time')
-@click.option('--min-open-time')
-@click.option('--max-open-time')
-@click.option('--min-close-time')
-@click.option('--max-close-time')
+@click.option('--cve-ids')
+@click.option('--min-asset-create-time')
+@click.option('--max-asset-create-time')
+@click.option('--min-asset-update-time')
+@click.option('--max-asset-update-time')
+@click.option('--min-next-assessment-time')
+@click.option('--max-next-assessment-time')
+@click.option('--min-last-assessment-time')
+@click.option('--max-last-assessment-time')
+@click.option('--min-last-host-scan-time')
+@click.option('--max-last-host-scan-time')
+@click.option('--min-host-last-seen-time')
+@click.option('--max-host-last-seen-time')
+@click.option('--min-vulnerability-create-time')
+@click.option('--max-vulnerability-create-time')
+@click.option('--min-vulnerability-update-time')
+@click.option('--max-vulnerability-update-time')
+@click.option('--min-vulnerability-open-time')
+@click.option('--max-vulnerability-open-time')
+@click.option('--min-vulnerability-close-time')
+@click.option('--max-vulnerability-close-time')
 @click.pass_context
 def count_vulnerabilities_by_location(
         ctx: click.Context,
-        ids: Optional[str],
-        names: Optional[str],
-        cve_ids: Optional[str],
         asset_ids: Optional[str],
+        asset_names: Optional[str],
         asset_tags: Optional[str],
-        locations: Optional[str],
+        host_ids: Optional[str],
+        hostnames: Optional[str],
+        ip_addresses: Optional[str],
         os_types: Optional[str],
         os_versions: Optional[str],
+        alive: Optional[bool],
+        vulnerability_ids: Optional[str],
+        vulnerability_names: Optional[str],
         affects_pci_compliance: Optional[bool],
         include_application_layer_vulnerabilities: Optional[bool],
         include_network_layer_vulnerabilities: Optional[bool],
-        min_create_time: Optional[str],
-        max_create_time: Optional[str],
-        min_update_time: Optional[str],
-        max_update_time: Optional[str],
-        min_open_time: Optional[str],
-        max_open_time: Optional[str],
-        min_close_time: Optional[str],
-        max_close_time: Optional[str]):
+        cve_ids: Optional[str],
+        min_asset_create_time: Optional[str],
+        max_asset_create_time: Optional[str],
+        min_asset_update_time: Optional[str],
+        max_asset_update_time: Optional[str],
+        min_next_assessment_time: Optional[str],
+        max_next_assessment_time: Optional[str],
+        min_last_assessment_time: Optional[str],
+        max_last_assessment_time: Optional[str],
+        min_last_host_scan_time: Optional[str],
+        max_last_host_scan_time: Optional[str],
+        min_host_last_seen_time: Optional[str],
+        max_host_last_seen_time: Optional[str],
+        min_vulnerability_create_time: Optional[str],
+        max_vulnerability_create_time: Optional[str],
+        min_vulnerability_update_time: Optional[str],
+        max_vulnerability_update_time: Optional[str],
+        min_vulnerability_open_time: Optional[str],
+        max_vulnerability_open_time: Optional[str],
+        min_vulnerability_close_time: Optional[str],
+        max_vulnerability_close_time: Optional[str]):
 
     api = EdgeScan(**ctx.obj['config']['edgescan']['api'])
 
-    tally = collections.defaultdict(int)
+    vulnerabilities_by_location = collections.defaultdict(int)
     for vulnerability in api.get_vulnerabilities(
-            ids=click.str_to_ints(ids),
-            names=click.str_to_strs(names),
-            cve_ids=click.str_to_strs(cve_ids),
-            asset_ids=click.str_to_ints(asset_ids),
-            asset_tags=click.str_to_strs(asset_tags),
-            locations=click.str_to_strs(locations),
-            os_types=click.str_to_strs(os_types),
-            os_versions=click.str_to_strs(os_versions),
-            affects_pci_compliance=affects_pci_compliance,
-            include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
-            include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
-            min_create_time=click.str_to_datetime(min_create_time),
-            max_create_time=click.str_to_datetime(max_create_time),
-            min_update_time=click.str_to_datetime(min_update_time),
-            max_update_time=click.str_to_datetime(max_update_time),
-            min_open_time=click.str_to_datetime(min_open_time),
-            max_open_time=click.str_to_datetime(max_open_time),
-            min_close_time=click.str_to_datetime(min_close_time),
-            max_close_time=click.str_to_datetime(max_close_time),
+        ids=cli.str_to_ints(vulnerability_ids),
+        names=cli.str_to_strs(vulnerability_names),
+        cve_ids=cli.str_to_strs(cve_ids),
+        affects_pci_compliance=affects_pci_compliance,
+        include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
+        include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
+        host_ids=cli.str_to_ints(host_ids),
+        hostnames=cli.str_to_strs(hostnames),
+        ip_addresses=cli.str_to_strs(ip_addresses),
+        os_types=cli.str_to_strs(os_types),
+        os_versions=cli.str_to_strs(os_versions),
+        alive=alive,
+        asset_ids=cli.str_to_ints(asset_ids),
+        asset_names=cli.str_to_strs(asset_names),
+        asset_tags=cli.str_to_strs(asset_tags),
+        min_asset_create_time=cli.str_to_datetime(min_asset_create_time),
+        max_asset_create_time=cli.str_to_datetime(max_asset_create_time),
+        min_asset_update_time=cli.str_to_datetime(min_asset_update_time),
+        max_asset_update_time=cli.str_to_datetime(max_asset_update_time),
+        min_next_assessment_time=cli.str_to_datetime(min_next_assessment_time),
+        max_next_assessment_time=cli.str_to_datetime(max_next_assessment_time),
+        min_last_assessment_time=cli.str_to_datetime(min_last_assessment_time),
+        max_last_assessment_time=cli.str_to_datetime(max_last_assessment_time),
+        min_last_host_scan_time=cli.str_to_datetime(min_last_host_scan_time),
+        max_last_host_scan_time=cli.str_to_datetime(max_last_host_scan_time),
+        min_host_last_seen_time=cli.str_to_datetime(min_host_last_seen_time),
+        max_host_last_seen_time=cli.str_to_datetime(max_host_last_seen_time),
+        min_vulnerability_create_time=cli.str_to_datetime(min_vulnerability_create_time),
+        max_vulnerability_create_time=cli.str_to_datetime(max_vulnerability_create_time),
+        min_vulnerability_update_time=cli.str_to_datetime(min_vulnerability_update_time),
+        max_vulnerability_update_time=cli.str_to_datetime(max_vulnerability_update_time),
+        min_vulnerability_open_time=cli.str_to_datetime(min_vulnerability_open_time),
+        max_vulnerability_open_time=cli.str_to_datetime(max_vulnerability_open_time),
+        min_vulnerability_close_time=cli.str_to_datetime(min_vulnerability_close_time),
+        max_vulnerability_close_time=cli.str_to_datetime(max_vulnerability_close_time),
     ):
-        tally[vulnerability.location] += 1
-    click.echo(json.dumps(tally, indent=DEFAULT_INDENT, sort_keys=SORT_KEYS_BY_DEFAULT))
+        vulnerabilities_by_location[vulnerability.location] += 1
+    click.echo(json.dumps(vulnerabilities_by_location, indent=DEFAULT_INDENT, sort_keys=SORT_KEYS_BY_DEFAULT))
 
 
 @vulnerabilities.command()
-@click.option('--ids')
-@click.option('--names')
-@click.option('--cve-ids')
 @click.option('--asset-ids')
+@click.option('--asset-names')
 @click.option('--asset-tags')
-@click.option('--locations')
+@click.option('--host-ids')
+@click.option('--hostnames')
+@click.option('--ip-addresses')
 @click.option('--os-types')
 @click.option('--os-versions')
+@click.option('--alive/--dead', default=None)
+@click.option('--vulnerability-ids')
+@click.option('--vulnerability-names')
 @click.option('--affects-pci-compliance/--does-not-affect-pci-compliance', default=None)
 @click.option('--include-application-layer-vulnerabilities/--exclude-application-layer-vulnerabilities', default=True)
 @click.option('--include-network-layer-vulnerabilities/--exclude-network-layer-vulnerabilities', default=True)
-@click.option('--min-create-time')
-@click.option('--max-create-time')
-@click.option('--min-update-time')
-@click.option('--max-update-time')
-@click.option('--min-open-time')
-@click.option('--max-open-time')
-@click.option('--min-close-time')
-@click.option('--max-close-time')
+@click.option('--cve-ids')
+@click.option('--min-asset-create-time')
+@click.option('--max-asset-create-time')
+@click.option('--min-asset-update-time')
+@click.option('--max-asset-update-time')
+@click.option('--min-next-assessment-time')
+@click.option('--max-next-assessment-time')
+@click.option('--min-last-assessment-time')
+@click.option('--max-last-assessment-time')
+@click.option('--min-last-host-scan-time')
+@click.option('--max-last-host-scan-time')
+@click.option('--min-host-last-seen-time')
+@click.option('--max-host-last-seen-time')
+@click.option('--min-vulnerability-create-time')
+@click.option('--max-vulnerability-create-time')
+@click.option('--min-vulnerability-update-time')
+@click.option('--max-vulnerability-update-time')
+@click.option('--min-vulnerability-open-time')
+@click.option('--max-vulnerability-open-time')
+@click.option('--min-vulnerability-close-time')
+@click.option('--max-vulnerability-close-time')
 @click.pass_context
 def count_vulnerabilities_by_cve_id(
         ctx: click.Context,
-        ids: Optional[str],
-        names: Optional[str],
-        cve_ids: Optional[str],
         asset_ids: Optional[str],
+        asset_names: Optional[str],
         asset_tags: Optional[str],
-        locations: Optional[str],
+        host_ids: Optional[str],
+        hostnames: Optional[str],
+        ip_addresses: Optional[str],
         os_types: Optional[str],
         os_versions: Optional[str],
+        alive: Optional[bool],
+        vulnerability_ids: Optional[str],
+        vulnerability_names: Optional[str],
         affects_pci_compliance: Optional[bool],
         include_application_layer_vulnerabilities: Optional[bool],
         include_network_layer_vulnerabilities: Optional[bool],
-        min_create_time: Optional[str],
-        max_create_time: Optional[str],
-        min_update_time: Optional[str],
-        max_update_time: Optional[str],
-        min_open_time: Optional[str],
-        max_open_time: Optional[str],
-        min_close_time: Optional[str],
-        max_close_time: Optional[str]):
+        cve_ids: Optional[str],
+        min_asset_create_time: Optional[str],
+        max_asset_create_time: Optional[str],
+        min_asset_update_time: Optional[str],
+        max_asset_update_time: Optional[str],
+        min_next_assessment_time: Optional[str],
+        max_next_assessment_time: Optional[str],
+        min_last_assessment_time: Optional[str],
+        max_last_assessment_time: Optional[str],
+        min_last_host_scan_time: Optional[str],
+        max_last_host_scan_time: Optional[str],
+        min_host_last_seen_time: Optional[str],
+        max_host_last_seen_time: Optional[str],
+        min_vulnerability_create_time: Optional[str],
+        max_vulnerability_create_time: Optional[str],
+        min_vulnerability_update_time: Optional[str],
+        max_vulnerability_update_time: Optional[str],
+        min_vulnerability_open_time: Optional[str],
+        max_vulnerability_open_time: Optional[str],
+        min_vulnerability_close_time: Optional[str],
+        max_vulnerability_close_time: Optional[str]):
 
     api = EdgeScan(**ctx.obj['config']['edgescan']['api'])
 
-    tally = collections.defaultdict(int)
+    vulnerabilities_by_cve_id = collections.defaultdict(int)
     for vulnerability in api.get_vulnerabilities(
-            ids=click.str_to_ints(ids),
-            names=click.str_to_strs(names),
-            cve_ids=click.str_to_strs(cve_ids),
-            asset_ids=click.str_to_ints(asset_ids),
-            asset_tags=click.str_to_strs(asset_tags),
-            locations=click.str_to_strs(locations),
-            os_types=click.str_to_strs(os_types),
-            os_versions=click.str_to_strs(os_versions),
-            affects_pci_compliance=affects_pci_compliance,
-            include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
-            include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
-            min_create_time=click.str_to_datetime(min_create_time),
-            max_create_time=click.str_to_datetime(max_create_time),
-            min_update_time=click.str_to_datetime(min_update_time),
-            max_update_time=click.str_to_datetime(max_update_time),
-            min_open_time=click.str_to_datetime(min_open_time),
-            max_open_time=click.str_to_datetime(max_open_time),
-            min_close_time=click.str_to_datetime(min_close_time),
-            max_close_time=click.str_to_datetime(max_close_time),
+        ids=cli.str_to_ints(vulnerability_ids),
+        names=cli.str_to_strs(vulnerability_names),
+        cve_ids=cli.str_to_strs(cve_ids),
+        affects_pci_compliance=affects_pci_compliance,
+        include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
+        include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
+        host_ids=cli.str_to_ints(host_ids),
+        hostnames=cli.str_to_strs(hostnames),
+        ip_addresses=cli.str_to_strs(ip_addresses),
+        os_types=cli.str_to_strs(os_types),
+        os_versions=cli.str_to_strs(os_versions),
+        alive=alive,
+        asset_ids=cli.str_to_ints(asset_ids),
+        asset_names=cli.str_to_strs(asset_names),
+        asset_tags=cli.str_to_strs(asset_tags),
+        min_asset_create_time=cli.str_to_datetime(min_asset_create_time),
+        max_asset_create_time=cli.str_to_datetime(max_asset_create_time),
+        min_asset_update_time=cli.str_to_datetime(min_asset_update_time),
+        max_asset_update_time=cli.str_to_datetime(max_asset_update_time),
+        min_next_assessment_time=cli.str_to_datetime(min_next_assessment_time),
+        max_next_assessment_time=cli.str_to_datetime(max_next_assessment_time),
+        min_last_assessment_time=cli.str_to_datetime(min_last_assessment_time),
+        max_last_assessment_time=cli.str_to_datetime(max_last_assessment_time),
+        min_last_host_scan_time=cli.str_to_datetime(min_last_host_scan_time),
+        max_last_host_scan_time=cli.str_to_datetime(max_last_host_scan_time),
+        min_host_last_seen_time=cli.str_to_datetime(min_host_last_seen_time),
+        max_host_last_seen_time=cli.str_to_datetime(max_host_last_seen_time),
+        min_vulnerability_create_time=cli.str_to_datetime(min_vulnerability_create_time),
+        max_vulnerability_create_time=cli.str_to_datetime(max_vulnerability_create_time),
+        min_vulnerability_update_time=cli.str_to_datetime(min_vulnerability_update_time),
+        max_vulnerability_update_time=cli.str_to_datetime(max_vulnerability_update_time),
+        min_vulnerability_open_time=cli.str_to_datetime(min_vulnerability_open_time),
+        max_vulnerability_open_time=cli.str_to_datetime(max_vulnerability_open_time),
+        min_vulnerability_close_time=cli.str_to_datetime(min_vulnerability_close_time),
+        max_vulnerability_close_time=cli.str_to_datetime(max_vulnerability_close_time),
     ):
         for cve in vulnerability.cves:
-            tally[cve] += 1
-    click.echo(json.dumps(tally, indent=DEFAULT_INDENT, sort_keys=SORT_KEYS_BY_DEFAULT))
+            vulnerabilities_by_cve_id[cve] += 1
+    click.echo(json.dumps(vulnerabilities_by_cve_id, indent=DEFAULT_INDENT, sort_keys=SORT_KEYS_BY_DEFAULT))
 
 
 @vulnerabilities.command()
-@click.option('--ids')
-@click.option('--names')
-@click.option('--cve-ids')
 @click.option('--asset-ids')
+@click.option('--asset-names')
 @click.option('--asset-tags')
-@click.option('--locations')
+@click.option('--host-ids')
+@click.option('--hostnames')
+@click.option('--ip-addresses')
 @click.option('--os-types')
 @click.option('--os-versions')
+@click.option('--alive/--dead', default=None)
+@click.option('--vulnerability-ids')
+@click.option('--vulnerability-names')
 @click.option('--affects-pci-compliance/--does-not-affect-pci-compliance', default=None)
 @click.option('--include-application-layer-vulnerabilities/--exclude-application-layer-vulnerabilities', default=True)
 @click.option('--include-network-layer-vulnerabilities/--exclude-network-layer-vulnerabilities', default=True)
-@click.option('--min-create-time')
-@click.option('--max-create-time')
-@click.option('--min-update-time')
-@click.option('--max-update-time')
-@click.option('--min-open-time')
-@click.option('--max-open-time')
-@click.option('--min-close-time')
-@click.option('--max-close-time')
+@click.option('--cve-ids')
+@click.option('--min-asset-create-time')
+@click.option('--max-asset-create-time')
+@click.option('--min-asset-update-time')
+@click.option('--max-asset-update-time')
+@click.option('--min-next-assessment-time')
+@click.option('--max-next-assessment-time')
+@click.option('--min-last-assessment-time')
+@click.option('--max-last-assessment-time')
+@click.option('--min-last-host-scan-time')
+@click.option('--max-last-host-scan-time')
+@click.option('--min-host-last-seen-time')
+@click.option('--max-host-last-seen-time')
+@click.option('--min-vulnerability-create-time')
+@click.option('--max-vulnerability-create-time')
+@click.option('--min-vulnerability-update-time')
+@click.option('--max-vulnerability-update-time')
+@click.option('--min-vulnerability-open-time')
+@click.option('--max-vulnerability-open-time')
+@click.option('--min-vulnerability-close-time')
+@click.option('--max-vulnerability-close-time')
 @click.pass_context
 def count_vulnerabilities_by_os_type(
         ctx: click.Context,
-        ids: Optional[str],
-        names: Optional[str],
-        cve_ids: Optional[str],
         asset_ids: Optional[str],
+        asset_names: Optional[str],
         asset_tags: Optional[str],
-        locations: Optional[str],
+        host_ids: Optional[str],
+        hostnames: Optional[str],
+        ip_addresses: Optional[str],
         os_types: Optional[str],
         os_versions: Optional[str],
+        alive: Optional[bool],
+        vulnerability_ids: Optional[str],
+        vulnerability_names: Optional[str],
         affects_pci_compliance: Optional[bool],
         include_application_layer_vulnerabilities: Optional[bool],
         include_network_layer_vulnerabilities: Optional[bool],
-        min_create_time: Optional[str],
-        max_create_time: Optional[str],
-        min_update_time: Optional[str],
-        max_update_time: Optional[str],
-        min_open_time: Optional[str],
-        max_open_time: Optional[str],
-        min_close_time: Optional[str],
-        max_close_time: Optional[str]):
+        cve_ids: Optional[str],
+        min_asset_create_time: Optional[str],
+        max_asset_create_time: Optional[str],
+        min_asset_update_time: Optional[str],
+        max_asset_update_time: Optional[str],
+        min_next_assessment_time: Optional[str],
+        max_next_assessment_time: Optional[str],
+        min_last_assessment_time: Optional[str],
+        max_last_assessment_time: Optional[str],
+        min_last_host_scan_time: Optional[str],
+        max_last_host_scan_time: Optional[str],
+        min_host_last_seen_time: Optional[str],
+        max_host_last_seen_time: Optional[str],
+        min_vulnerability_create_time: Optional[str],
+        max_vulnerability_create_time: Optional[str],
+        min_vulnerability_update_time: Optional[str],
+        max_vulnerability_update_time: Optional[str],
+        min_vulnerability_open_time: Optional[str],
+        max_vulnerability_open_time: Optional[str],
+        min_vulnerability_close_time: Optional[str],
+        max_vulnerability_close_time: Optional[str]):
 
     api = EdgeScan(**ctx.obj['config']['edgescan']['api'])
 
-    #: Lookup hosts.
-    hosts = api.get_hosts(
-        asset_ids=click.str_to_ints(asset_ids),
-        asset_tags=click.str_to_strs(asset_tags),
-        os_types=click.str_to_strs(os_types),
-        os_versions=click.str_to_strs(os_versions),
-        min_vulnerability_create_time=click.str_to_datetime(min_create_time),
-        max_vulnerability_create_time=click.str_to_datetime(max_create_time),
-        min_vulnerability_update_time=click.str_to_datetime(min_update_time),
-        max_vulnerability_update_time=click.str_to_datetime(max_update_time),
-        min_vulnerability_open_time=click.str_to_datetime(min_open_time),
-        max_vulnerability_open_time=click.str_to_datetime(max_open_time),
-        min_vulnerability_close_time=click.str_to_datetime(min_close_time),
-        max_vulnerability_close_time=click.str_to_datetime(max_close_time),
+    vulnerabilities_by_host = api.get_map_of_hosts_to_vulnerabilities(
+        cve_ids=cli.str_to_strs(cve_ids),
+        vulnerability_ids=cli.str_to_ints(vulnerability_ids),
+        vulnerability_names=cli.str_to_strs(vulnerability_names),
+        vulnerability_affects_pci_compliance=affects_pci_compliance,
+        include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
+        include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
+        host_ids=cli.str_to_ints(host_ids),
+        hostnames=cli.str_to_strs(hostnames),
+        ip_addresses=cli.str_to_strs(ip_addresses),
+        os_types=cli.str_to_strs(os_types),
+        os_versions=cli.str_to_strs(os_versions),
+        alive=alive,
+        asset_ids=cli.str_to_ints(asset_ids),
+        asset_names=cli.str_to_strs(asset_names),
+        asset_tags=cli.str_to_strs(asset_tags),
+        min_asset_create_time=cli.str_to_datetime(min_asset_create_time),
+        max_asset_create_time=cli.str_to_datetime(max_asset_create_time),
+        min_asset_update_time=cli.str_to_datetime(min_asset_update_time),
+        max_asset_update_time=cli.str_to_datetime(max_asset_update_time),
+        min_next_assessment_time=cli.str_to_datetime(min_next_assessment_time),
+        max_next_assessment_time=cli.str_to_datetime(max_next_assessment_time),
+        min_last_assessment_time=cli.str_to_datetime(min_last_assessment_time),
+        max_last_assessment_time=cli.str_to_datetime(max_last_assessment_time),
+        min_last_host_scan_time=cli.str_to_datetime(min_last_host_scan_time),
+        max_last_host_scan_time=cli.str_to_datetime(max_last_host_scan_time),
+        min_host_last_seen_time=cli.str_to_datetime(min_host_last_seen_time),
+        max_host_last_seen_time=cli.str_to_datetime(max_host_last_seen_time),
+        min_vulnerability_create_time=cli.str_to_datetime(min_vulnerability_create_time),
+        max_vulnerability_create_time=cli.str_to_datetime(max_vulnerability_create_time),
+        min_vulnerability_update_time=cli.str_to_datetime(min_vulnerability_update_time),
+        max_vulnerability_update_time=cli.str_to_datetime(max_vulnerability_update_time),
+        min_vulnerability_open_time=cli.str_to_datetime(min_vulnerability_open_time),
+        max_vulnerability_open_time=cli.str_to_datetime(max_vulnerability_open_time),
+        min_vulnerability_close_time=cli.str_to_datetime(min_vulnerability_close_time),
+        max_vulnerability_close_time=cli.str_to_datetime(max_vulnerability_close_time),
     )
-    hosts_by_id = dict((host.id, host) for host in hosts)
-    host_ids_by_location = collections.defaultdict(set)
-    for host in hosts:
-        host_ids_by_location[host.location].add(host.id)
-
-    #: Lookup vulnerabilities.
-    tally = collections.defaultdict(int)
-    for vulnerability in api.get_vulnerabilities(
-            ids=click.str_to_ints(ids),
-            names=click.str_to_strs(names),
-            cve_ids=click.str_to_strs(cve_ids),
-            asset_ids=click.str_to_ints(asset_ids),
-            asset_tags=click.str_to_strs(asset_tags),
-            locations=click.str_to_strs(locations),
-            os_types=click.str_to_strs(os_types),
-            os_versions=click.str_to_strs(os_versions),
-            affects_pci_compliance=affects_pci_compliance,
-            include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
-            include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
-            min_create_time=click.str_to_datetime(min_create_time),
-            max_create_time=click.str_to_datetime(max_create_time),
-            min_update_time=click.str_to_datetime(min_update_time),
-            max_update_time=click.str_to_datetime(max_update_time),
-            min_open_time=click.str_to_datetime(min_open_time),
-            max_open_time=click.str_to_datetime(max_open_time),
-            min_close_time=click.str_to_datetime(min_close_time),
-            max_close_time=click.str_to_datetime(max_close_time),
-    ):
-        if vulnerability.location in host_ids_by_location:
-            for host_id in host_ids_by_location[vulnerability.location]:
-                host = hosts_by_id[host_id]
-                if host.os_type:
-                    tally[host.os_type] += 1
-
-    click.echo(json.dumps(tally, indent=DEFAULT_INDENT, sort_keys=SORT_KEYS_BY_DEFAULT))
+    vulnerabilities_by_os_type = collections.defaultdict(int)
+    for host, vulns in vulnerabilities_by_host.items():
+        if host.os_type:
+            vulnerabilities_by_os_type[host.os_type] += len(vulns)
+    click.echo(json.dumps(vulnerabilities_by_os_type, indent=DEFAULT_INDENT, sort_keys=SORT_KEYS_BY_DEFAULT))
 
 
 @vulnerabilities.command()
-@click.option('--ids')
-@click.option('--names')
-@click.option('--cve-ids')
 @click.option('--asset-ids')
+@click.option('--asset-names')
 @click.option('--asset-tags')
-@click.option('--locations')
+@click.option('--host-ids')
+@click.option('--hostnames')
+@click.option('--ip-addresses')
 @click.option('--os-types')
 @click.option('--os-versions')
+@click.option('--alive/--dead', default=None)
+@click.option('--vulnerability-ids')
+@click.option('--vulnerability-names')
 @click.option('--affects-pci-compliance/--does-not-affect-pci-compliance', default=None)
 @click.option('--include-application-layer-vulnerabilities/--exclude-application-layer-vulnerabilities', default=True)
 @click.option('--include-network-layer-vulnerabilities/--exclude-network-layer-vulnerabilities', default=True)
-@click.option('--min-create-time')
-@click.option('--max-create-time')
-@click.option('--min-update-time')
-@click.option('--max-update-time')
-@click.option('--min-open-time')
-@click.option('--max-open-time')
-@click.option('--min-close-time')
-@click.option('--max-close-time')
+@click.option('--cve-ids')
+@click.option('--min-asset-create-time')
+@click.option('--max-asset-create-time')
+@click.option('--min-asset-update-time')
+@click.option('--max-asset-update-time')
+@click.option('--min-next-assessment-time')
+@click.option('--max-next-assessment-time')
+@click.option('--min-last-assessment-time')
+@click.option('--max-last-assessment-time')
+@click.option('--min-last-host-scan-time')
+@click.option('--max-last-host-scan-time')
+@click.option('--min-host-last-seen-time')
+@click.option('--max-host-last-seen-time')
+@click.option('--min-vulnerability-create-time')
+@click.option('--max-vulnerability-create-time')
+@click.option('--min-vulnerability-update-time')
+@click.option('--max-vulnerability-update-time')
+@click.option('--min-vulnerability-open-time')
+@click.option('--max-vulnerability-open-time')
+@click.option('--min-vulnerability-close-time')
+@click.option('--max-vulnerability-close-time')
 @click.pass_context
 def count_vulnerabilities_by_os_version(
         ctx: click.Context,
-        ids: Optional[str],
-        names: Optional[str],
-        cve_ids: Optional[str],
         asset_ids: Optional[str],
+        asset_names: Optional[str],
         asset_tags: Optional[str],
-        locations: Optional[str],
+        host_ids: Optional[str],
+        hostnames: Optional[str],
+        ip_addresses: Optional[str],
         os_types: Optional[str],
         os_versions: Optional[str],
+        alive: Optional[bool],
+        vulnerability_ids: Optional[str],
+        vulnerability_names: Optional[str],
         affects_pci_compliance: Optional[bool],
         include_application_layer_vulnerabilities: Optional[bool],
         include_network_layer_vulnerabilities: Optional[bool],
-        min_create_time: Optional[str],
-        max_create_time: Optional[str],
-        min_update_time: Optional[str],
-        max_update_time: Optional[str],
-        min_open_time: Optional[str],
-        max_open_time: Optional[str],
-        min_close_time: Optional[str],
-        max_close_time: Optional[str]):
+        cve_ids: Optional[str],
+        min_asset_create_time: Optional[str],
+        max_asset_create_time: Optional[str],
+        min_asset_update_time: Optional[str],
+        max_asset_update_time: Optional[str],
+        min_next_assessment_time: Optional[str],
+        max_next_assessment_time: Optional[str],
+        min_last_assessment_time: Optional[str],
+        max_last_assessment_time: Optional[str],
+        min_last_host_scan_time: Optional[str],
+        max_last_host_scan_time: Optional[str],
+        min_host_last_seen_time: Optional[str],
+        max_host_last_seen_time: Optional[str],
+        min_vulnerability_create_time: Optional[str],
+        max_vulnerability_create_time: Optional[str],
+        min_vulnerability_update_time: Optional[str],
+        max_vulnerability_update_time: Optional[str],
+        min_vulnerability_open_time: Optional[str],
+        max_vulnerability_open_time: Optional[str],
+        min_vulnerability_close_time: Optional[str],
+        max_vulnerability_close_time: Optional[str]):
 
     api = EdgeScan(**ctx.obj['config']['edgescan']['api'])
 
-    #: Lookup hosts.
-    hosts = api.get_hosts(
-        asset_ids=click.str_to_ints(asset_ids),
-        asset_tags=click.str_to_strs(asset_tags),
-        os_types=click.str_to_strs(os_types),
-        os_versions=click.str_to_strs(os_versions),
-        min_vulnerability_create_time=click.str_to_datetime(min_create_time),
-        max_vulnerability_create_time=click.str_to_datetime(max_create_time),
-        min_vulnerability_update_time=click.str_to_datetime(min_update_time),
-        max_vulnerability_update_time=click.str_to_datetime(max_update_time),
-        min_vulnerability_open_time=click.str_to_datetime(min_open_time),
-        max_vulnerability_open_time=click.str_to_datetime(max_open_time),
-        min_vulnerability_close_time=click.str_to_datetime(min_close_time),
-        max_vulnerability_close_time=click.str_to_datetime(max_close_time),
+    vulnerabilities_by_host = api.get_map_of_hosts_to_vulnerabilities(
+        cve_ids=cli.str_to_strs(cve_ids),
+        vulnerability_ids=cli.str_to_ints(vulnerability_ids),
+        vulnerability_names=cli.str_to_strs(vulnerability_names),
+        vulnerability_affects_pci_compliance=affects_pci_compliance,
+        include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
+        include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
+        host_ids=cli.str_to_ints(host_ids),
+        hostnames=cli.str_to_strs(hostnames),
+        ip_addresses=cli.str_to_strs(ip_addresses),
+        os_types=cli.str_to_strs(os_types),
+        os_versions=cli.str_to_strs(os_versions),
+        alive=alive,
+        asset_ids=cli.str_to_ints(asset_ids),
+        asset_names=cli.str_to_strs(asset_names),
+        asset_tags=cli.str_to_strs(asset_tags),
+        min_asset_create_time=cli.str_to_datetime(min_asset_create_time),
+        max_asset_create_time=cli.str_to_datetime(max_asset_create_time),
+        min_asset_update_time=cli.str_to_datetime(min_asset_update_time),
+        max_asset_update_time=cli.str_to_datetime(max_asset_update_time),
+        min_next_assessment_time=cli.str_to_datetime(min_next_assessment_time),
+        max_next_assessment_time=cli.str_to_datetime(max_next_assessment_time),
+        min_last_assessment_time=cli.str_to_datetime(min_last_assessment_time),
+        max_last_assessment_time=cli.str_to_datetime(max_last_assessment_time),
+        min_last_host_scan_time=cli.str_to_datetime(min_last_host_scan_time),
+        max_last_host_scan_time=cli.str_to_datetime(max_last_host_scan_time),
+        min_host_last_seen_time=cli.str_to_datetime(min_host_last_seen_time),
+        max_host_last_seen_time=cli.str_to_datetime(max_host_last_seen_time),
+        min_vulnerability_create_time=cli.str_to_datetime(min_vulnerability_create_time),
+        max_vulnerability_create_time=cli.str_to_datetime(max_vulnerability_create_time),
+        min_vulnerability_update_time=cli.str_to_datetime(min_vulnerability_update_time),
+        max_vulnerability_update_time=cli.str_to_datetime(max_vulnerability_update_time),
+        min_vulnerability_open_time=cli.str_to_datetime(min_vulnerability_open_time),
+        max_vulnerability_open_time=cli.str_to_datetime(max_vulnerability_open_time),
+        min_vulnerability_close_time=cli.str_to_datetime(min_vulnerability_close_time),
+        max_vulnerability_close_time=cli.str_to_datetime(max_vulnerability_close_time),
     )
-    hosts_by_id = dict((host.id, host) for host in hosts)
-    host_ids_by_location = collections.defaultdict(set)
-    for host in hosts:
-        host_ids_by_location[host.location].add(host.id)
-
-    #: Lookup vulnerabilities.
-    tally = collections.defaultdict(int)
-    for vulnerability in api.get_vulnerabilities(
-            ids=click.str_to_ints(ids),
-            names=click.str_to_strs(names),
-            cve_ids=click.str_to_strs(cve_ids),
-            asset_ids=click.str_to_ints(asset_ids),
-            asset_tags=click.str_to_strs(asset_tags),
-            locations=click.str_to_strs(locations),
-            os_types=click.str_to_strs(os_types),
-            os_versions=click.str_to_strs(os_versions),
-            affects_pci_compliance=affects_pci_compliance,
-            include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
-            include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
-            min_create_time=click.str_to_datetime(min_create_time),
-            max_create_time=click.str_to_datetime(max_create_time),
-            min_update_time=click.str_to_datetime(min_update_time),
-            max_update_time=click.str_to_datetime(max_update_time),
-            min_open_time=click.str_to_datetime(min_open_time),
-            max_open_time=click.str_to_datetime(max_open_time),
-            min_close_time=click.str_to_datetime(min_close_time),
-            max_close_time=click.str_to_datetime(max_close_time),
-    ):
-        if vulnerability.location in host_ids_by_location:
-            for host_id in host_ids_by_location[vulnerability.location]:
-                host = hosts_by_id[host_id]
-                if host.os_version:
-                    tally[host.os_version] += 1
-
-    click.echo(json.dumps(tally, indent=DEFAULT_INDENT, sort_keys=SORT_KEYS_BY_DEFAULT))
+    vulnerabilities_by_os_version = collections.defaultdict(int)
+    for host, vulns in vulnerabilities_by_host.items():
+        if host.os_version:
+            vulnerabilities_by_os_version[host.os_version] += len(vulns)
+    click.echo(json.dumps(vulnerabilities_by_os_version, indent=DEFAULT_INDENT, sort_keys=SORT_KEYS_BY_DEFAULT))
 
 
 @vulnerabilities.command()
-@click.option('--ids')
-@click.option('--names')
-@click.option('--cve-ids')
 @click.option('--asset-ids')
+@click.option('--asset-names')
 @click.option('--asset-tags')
-@click.option('--locations')
+@click.option('--host-ids')
+@click.option('--hostnames')
+@click.option('--ip-addresses')
 @click.option('--os-types')
 @click.option('--os-versions')
+@click.option('--alive/--dead', default=None)
+@click.option('--vulnerability-ids')
+@click.option('--vulnerability-names')
 @click.option('--affects-pci-compliance/--does-not-affect-pci-compliance', default=None)
 @click.option('--include-application-layer-vulnerabilities/--exclude-application-layer-vulnerabilities', default=True)
 @click.option('--include-network-layer-vulnerabilities/--exclude-network-layer-vulnerabilities', default=True)
-@click.option('--min-create-time')
-@click.option('--max-create-time')
-@click.option('--min-update-time')
-@click.option('--max-update-time')
-@click.option('--min-open-time')
-@click.option('--max-open-time')
-@click.option('--min-close-time')
-@click.option('--max-close-time')
+@click.option('--cve-ids')
+@click.option('--min-asset-create-time')
+@click.option('--max-asset-create-time')
+@click.option('--min-asset-update-time')
+@click.option('--max-asset-update-time')
+@click.option('--min-next-assessment-time')
+@click.option('--max-next-assessment-time')
+@click.option('--min-last-assessment-time')
+@click.option('--max-last-assessment-time')
+@click.option('--min-last-host-scan-time')
+@click.option('--max-last-host-scan-time')
+@click.option('--min-host-last-seen-time')
+@click.option('--max-host-last-seen-time')
+@click.option('--min-vulnerability-create-time')
+@click.option('--max-vulnerability-create-time')
+@click.option('--min-vulnerability-update-time')
+@click.option('--max-vulnerability-update-time')
+@click.option('--min-vulnerability-open-time')
+@click.option('--max-vulnerability-open-time')
+@click.option('--min-vulnerability-close-time')
+@click.option('--max-vulnerability-close-time')
 @click.option('--granularity', type=click.Choice(['hour', 'day', 'month']), default='day')
 @click.pass_context
 def count_vulnerabilities_by_open_time(
         ctx: click.Context,
-        ids: Optional[str],
-        names: Optional[str],
-        cve_ids: Optional[str],
         asset_ids: Optional[str],
+        asset_names: Optional[str],
         asset_tags: Optional[str],
-        locations: Optional[str],
+        host_ids: Optional[str],
+        hostnames: Optional[str],
+        ip_addresses: Optional[str],
         os_types: Optional[str],
         os_versions: Optional[str],
+        alive: Optional[bool],
+        vulnerability_ids: Optional[str],
+        vulnerability_names: Optional[str],
         affects_pci_compliance: Optional[bool],
         include_application_layer_vulnerabilities: Optional[bool],
         include_network_layer_vulnerabilities: Optional[bool],
-        min_create_time: Optional[str],
-        max_create_time: Optional[str],
-        min_update_time: Optional[str],
-        max_update_time: Optional[str],
-        min_open_time: Optional[str],
-        max_open_time: Optional[str],
-        min_close_time: Optional[str],
-        max_close_time: Optional[str],
+        cve_ids: Optional[str],
+        min_asset_create_time: Optional[str],
+        max_asset_create_time: Optional[str],
+        min_asset_update_time: Optional[str],
+        max_asset_update_time: Optional[str],
+        min_next_assessment_time: Optional[str],
+        max_next_assessment_time: Optional[str],
+        min_last_assessment_time: Optional[str],
+        max_last_assessment_time: Optional[str],
+        min_last_host_scan_time: Optional[str],
+        max_last_host_scan_time: Optional[str],
+        min_host_last_seen_time: Optional[str],
+        max_host_last_seen_time: Optional[str],
+        min_vulnerability_create_time: Optional[str],
+        max_vulnerability_create_time: Optional[str],
+        min_vulnerability_update_time: Optional[str],
+        max_vulnerability_update_time: Optional[str],
+        min_vulnerability_open_time: Optional[str],
+        max_vulnerability_open_time: Optional[str],
+        min_vulnerability_close_time: Optional[str],
+        max_vulnerability_close_time: Optional[str],
         granularity: str):
 
     api = EdgeScan(**ctx.obj['config']['edgescan']['api'])
 
     tally = collections.defaultdict(int)
     for vulnerability in api.get_vulnerabilities(
-            ids=click.str_to_ints(ids),
-            names=click.str_to_strs(names),
-            cve_ids=click.str_to_strs(cve_ids),
-            asset_ids=click.str_to_ints(asset_ids),
-            asset_tags=click.str_to_strs(asset_tags),
-            locations=click.str_to_strs(locations),
-            os_types=click.str_to_strs(os_types),
-            os_versions=click.str_to_strs(os_versions),
-            affects_pci_compliance=affects_pci_compliance,
-            include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
-            include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
-            min_create_time=click.str_to_datetime(min_create_time),
-            max_create_time=click.str_to_datetime(max_create_time),
-            min_update_time=click.str_to_datetime(min_update_time),
-            max_update_time=click.str_to_datetime(max_update_time),
-            min_open_time=click.str_to_datetime(min_open_time),
-            max_open_time=click.str_to_datetime(max_open_time),
-            min_close_time=click.str_to_datetime(min_close_time),
-            max_close_time=click.str_to_datetime(max_close_time),
+        ids=cli.str_to_ints(vulnerability_ids),
+        names=cli.str_to_strs(vulnerability_names),
+        cve_ids=cli.str_to_strs(cve_ids),
+        affects_pci_compliance=affects_pci_compliance,
+        include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
+        include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
+        host_ids=cli.str_to_ints(host_ids),
+        hostnames=cli.str_to_strs(hostnames),
+        ip_addresses=cli.str_to_strs(ip_addresses),
+        os_types=cli.str_to_strs(os_types),
+        os_versions=cli.str_to_strs(os_versions),
+        alive=alive,
+        asset_ids=cli.str_to_ints(asset_ids),
+        asset_names=cli.str_to_strs(asset_names),
+        asset_tags=cli.str_to_strs(asset_tags),
+        min_asset_create_time=cli.str_to_datetime(min_asset_create_time),
+        max_asset_create_time=cli.str_to_datetime(max_asset_create_time),
+        min_asset_update_time=cli.str_to_datetime(min_asset_update_time),
+        max_asset_update_time=cli.str_to_datetime(max_asset_update_time),
+        min_next_assessment_time=cli.str_to_datetime(min_next_assessment_time),
+        max_next_assessment_time=cli.str_to_datetime(max_next_assessment_time),
+        min_last_assessment_time=cli.str_to_datetime(min_last_assessment_time),
+        max_last_assessment_time=cli.str_to_datetime(max_last_assessment_time),
+        min_last_host_scan_time=cli.str_to_datetime(min_last_host_scan_time),
+        max_last_host_scan_time=cli.str_to_datetime(max_last_host_scan_time),
+        min_host_last_seen_time=cli.str_to_datetime(min_host_last_seen_time),
+        max_host_last_seen_time=cli.str_to_datetime(max_host_last_seen_time),
+        min_vulnerability_create_time=cli.str_to_datetime(min_vulnerability_create_time),
+        max_vulnerability_create_time=cli.str_to_datetime(max_vulnerability_create_time),
+        min_vulnerability_update_time=cli.str_to_datetime(min_vulnerability_update_time),
+        max_vulnerability_update_time=cli.str_to_datetime(max_vulnerability_update_time),
+        min_vulnerability_open_time=cli.str_to_datetime(min_vulnerability_open_time),
+        max_vulnerability_open_time=cli.str_to_datetime(max_vulnerability_open_time),
+        min_vulnerability_close_time=cli.str_to_datetime(min_vulnerability_close_time),
+        max_vulnerability_close_time=cli.str_to_datetime(max_vulnerability_close_time),
     ):
         open_time = vulnerability.open_time
         if granularity in [HOUR, DAY, MONTH]:
@@ -667,73 +997,121 @@ def count_vulnerabilities_by_open_time(
 
 
 @vulnerabilities.command()
-@click.option('--ids')
-@click.option('--names')
-@click.option('--cve-ids')
 @click.option('--asset-ids')
+@click.option('--asset-names')
 @click.option('--asset-tags')
-@click.option('--locations')
+@click.option('--host-ids')
+@click.option('--hostnames')
+@click.option('--ip-addresses')
 @click.option('--os-types')
 @click.option('--os-versions')
+@click.option('--alive/--dead', default=None)
+@click.option('--vulnerability-ids')
+@click.option('--vulnerability-names')
 @click.option('--affects-pci-compliance/--does-not-affect-pci-compliance', default=None)
 @click.option('--include-application-layer-vulnerabilities/--exclude-application-layer-vulnerabilities', default=True)
 @click.option('--include-network-layer-vulnerabilities/--exclude-network-layer-vulnerabilities', default=True)
-@click.option('--min-create-time')
-@click.option('--max-create-time')
-@click.option('--min-update-time')
-@click.option('--max-update-time')
-@click.option('--min-open-time')
-@click.option('--max-open-time')
-@click.option('--min-close-time')
-@click.option('--max-close-time')
+@click.option('--cve-ids')
+@click.option('--min-asset-create-time')
+@click.option('--max-asset-create-time')
+@click.option('--min-asset-update-time')
+@click.option('--max-asset-update-time')
+@click.option('--min-next-assessment-time')
+@click.option('--max-next-assessment-time')
+@click.option('--min-last-assessment-time')
+@click.option('--max-last-assessment-time')
+@click.option('--min-last-host-scan-time')
+@click.option('--max-last-host-scan-time')
+@click.option('--min-host-last-seen-time')
+@click.option('--max-host-last-seen-time')
+@click.option('--min-vulnerability-create-time')
+@click.option('--max-vulnerability-create-time')
+@click.option('--min-vulnerability-update-time')
+@click.option('--max-vulnerability-update-time')
+@click.option('--min-vulnerability-open-time')
+@click.option('--max-vulnerability-open-time')
+@click.option('--min-vulnerability-close-time')
+@click.option('--max-vulnerability-close-time')
 @click.option('--granularity', type=click.Choice(['hour', 'day', 'month']), default='day')
 @click.pass_context
 def count_vulnerabilities_by_close_time(
         ctx: click.Context,
-        ids: Optional[str],
-        names: Optional[str],
-        cve_ids: Optional[str],
         asset_ids: Optional[str],
+        asset_names: Optional[str],
         asset_tags: Optional[str],
-        locations: Optional[str],
+        host_ids: Optional[str],
+        hostnames: Optional[str],
+        ip_addresses: Optional[str],
         os_types: Optional[str],
         os_versions: Optional[str],
+        alive: Optional[bool],
+        vulnerability_ids: Optional[str],
+        vulnerability_names: Optional[str],
         affects_pci_compliance: Optional[bool],
         include_application_layer_vulnerabilities: Optional[bool],
         include_network_layer_vulnerabilities: Optional[bool],
-        min_create_time: Optional[str],
-        max_create_time: Optional[str],
-        min_update_time: Optional[str],
-        max_update_time: Optional[str],
-        min_open_time: Optional[str],
-        max_open_time: Optional[str],
-        min_close_time: Optional[str],
-        max_close_time: Optional[str],
+        cve_ids: Optional[str],
+        min_asset_create_time: Optional[str],
+        max_asset_create_time: Optional[str],
+        min_asset_update_time: Optional[str],
+        max_asset_update_time: Optional[str],
+        min_next_assessment_time: Optional[str],
+        max_next_assessment_time: Optional[str],
+        min_last_assessment_time: Optional[str],
+        max_last_assessment_time: Optional[str],
+        min_last_host_scan_time: Optional[str],
+        max_last_host_scan_time: Optional[str],
+        min_host_last_seen_time: Optional[str],
+        max_host_last_seen_time: Optional[str],
+        min_vulnerability_create_time: Optional[str],
+        max_vulnerability_create_time: Optional[str],
+        min_vulnerability_update_time: Optional[str],
+        max_vulnerability_update_time: Optional[str],
+        min_vulnerability_open_time: Optional[str],
+        max_vulnerability_open_time: Optional[str],
+        min_vulnerability_close_time: Optional[str],
+        max_vulnerability_close_time: Optional[str],
         granularity: str):
 
     api = EdgeScan(**ctx.obj['config']['edgescan']['api'])
 
     tally = collections.defaultdict(int)
     for vulnerability in api.get_vulnerabilities(
-            ids=click.str_to_ints(ids),
-            names=click.str_to_strs(names),
-            cve_ids=click.str_to_strs(cve_ids),
-            asset_ids=click.str_to_ints(asset_ids),
-            asset_tags=click.str_to_strs(asset_tags),
-            locations=click.str_to_strs(locations),
-            os_types=click.str_to_strs(os_types),
-            os_versions=click.str_to_strs(os_versions),
-            affects_pci_compliance=affects_pci_compliance,
-            include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
-            include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
-            min_create_time=click.str_to_datetime(min_create_time),
-            max_create_time=click.str_to_datetime(max_create_time),
-            min_update_time=click.str_to_datetime(min_update_time),
-            max_update_time=click.str_to_datetime(max_update_time),
-            min_open_time=click.str_to_datetime(min_open_time),
-            max_open_time=click.str_to_datetime(max_open_time),
-            min_close_time=click.str_to_datetime(min_close_time),
-            max_close_time=click.str_to_datetime(max_close_time),
+        ids=cli.str_to_ints(vulnerability_ids),
+        names=cli.str_to_strs(vulnerability_names),
+        cve_ids=cli.str_to_strs(cve_ids),
+        affects_pci_compliance=affects_pci_compliance,
+        include_application_layer_vulnerabilities=include_application_layer_vulnerabilities,
+        include_network_layer_vulnerabilities=include_network_layer_vulnerabilities,
+        host_ids=cli.str_to_ints(host_ids),
+        hostnames=cli.str_to_strs(hostnames),
+        ip_addresses=cli.str_to_strs(ip_addresses),
+        os_types=cli.str_to_strs(os_types),
+        os_versions=cli.str_to_strs(os_versions),
+        alive=alive,
+        asset_ids=cli.str_to_ints(asset_ids),
+        asset_names=cli.str_to_strs(asset_names),
+        asset_tags=cli.str_to_strs(asset_tags),
+        min_asset_create_time=cli.str_to_datetime(min_asset_create_time),
+        max_asset_create_time=cli.str_to_datetime(max_asset_create_time),
+        min_asset_update_time=cli.str_to_datetime(min_asset_update_time),
+        max_asset_update_time=cli.str_to_datetime(max_asset_update_time),
+        min_next_assessment_time=cli.str_to_datetime(min_next_assessment_time),
+        max_next_assessment_time=cli.str_to_datetime(max_next_assessment_time),
+        min_last_assessment_time=cli.str_to_datetime(min_last_assessment_time),
+        max_last_assessment_time=cli.str_to_datetime(max_last_assessment_time),
+        min_last_host_scan_time=cli.str_to_datetime(min_last_host_scan_time),
+        max_last_host_scan_time=cli.str_to_datetime(max_last_host_scan_time),
+        min_host_last_seen_time=cli.str_to_datetime(min_host_last_seen_time),
+        max_host_last_seen_time=cli.str_to_datetime(max_host_last_seen_time),
+        min_vulnerability_create_time=cli.str_to_datetime(min_vulnerability_create_time),
+        max_vulnerability_create_time=cli.str_to_datetime(max_vulnerability_create_time),
+        min_vulnerability_update_time=cli.str_to_datetime(min_vulnerability_update_time),
+        max_vulnerability_update_time=cli.str_to_datetime(max_vulnerability_update_time),
+        min_vulnerability_open_time=cli.str_to_datetime(min_vulnerability_open_time),
+        max_vulnerability_open_time=cli.str_to_datetime(max_vulnerability_open_time),
+        min_vulnerability_close_time=cli.str_to_datetime(min_vulnerability_close_time),
+        max_vulnerability_close_time=cli.str_to_datetime(max_vulnerability_close_time),
     ):
         close_time = vulnerability.close_time
         if not close_time:

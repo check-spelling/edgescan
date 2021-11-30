@@ -1,16 +1,15 @@
-from unittest import TestCase
 from edgescan.data.types.vulnerability import Vulnerability
-from tests.integration.api_client import get_api_client
 
+import tests.api_client as client
 import unittest
 
 
-class VulnerabilityIntegrationTestCases(TestCase):
+class VulnerabilityTestCases(unittest.TestCase):
     edgescan_api = None
 
     @classmethod
     def setUpClass(cls):
-        cls.edgescan_api = get_api_client()
+        cls.edgescan_api = client.get_api_client()
         try:
             next(cls.edgescan_api.iter_vulnerabilities(limit=1))
         except StopIteration:

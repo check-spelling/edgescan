@@ -1,16 +1,15 @@
-from unittest import TestCase
 from edgescan.data.types.license import License
-from tests.integration.api_client import get_api_client
 
+import tests.api_client as client
 import unittest
 
 
-class LicenseIntegrationTestCases(TestCase):
+class LicenseTestCases(unittest.TestCase):
     edgescan_api = None
 
     @classmethod
     def setUpClass(cls):
-        cls.edgescan_api = get_api_client()
+        cls.edgescan_api = client.get_api_client()
         try:
             next(cls.edgescan_api.iter_licenses(limit=1))
         except StopIteration:

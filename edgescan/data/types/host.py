@@ -5,6 +5,7 @@ from edgescan.data.types.object import Object
 import hodgepodge.pattern_matching
 import hodgepodge.platforms
 import hodgepodge.time
+import ipaddress
 import datetime
 
 
@@ -19,6 +20,13 @@ class Host(Object):
     updated_at: datetime.datetime
     os_name: str
     apis_detected: bool
+
+    @property
+    def ip_address(self) -> Optional[str]:
+        try:
+            return str(ipaddress.ip_address(self.location))
+        except ipaddress.AddressValueError:
+            return
 
     @property
     def os_type(self) -> str:
@@ -36,19 +44,23 @@ class Host(Object):
     def update_time(self) -> datetime.datetime:
         return self.updated_at
 
+    @property
+    def last_seen_time(self) -> datetime.datetime:
+        return self.updated_at
+
     def is_alive(self) -> bool:
         return self.status == 'alive'
 
     def matches(
             self, 
             ids: Optional[List[int]] = None,
-            asset_ids: Optional[List[int]] = None,
             locations: Optional[List[str]] = None,
             os_types: Optional[List[str]] = None,
             os_versions: Optional[List[str]] = None,
             alive: Optional[bool] = None,
-            min_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
-            max_update_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None) -> bool:
+            min_last_seen_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            max_last_seen_time: Optional[Union[str, int, float, datetime.datetime, datetime.date]] = None,
+            asset_ids: Optional[List[int]] = None) -> bool:
 
         #: Filter hosts by ID.
         if ids and self.id not in ids:
@@ -77,7 +89,10 @@ class Host(Object):
             return False
 
         #: Filter hosts based on when they were last seen.
-        if (min_update_time or max_update_time) and \
-                not hodgepodge.time.in_range(self.update_time, min_update_time, max_update_time):
+        if (min_last_seen_time or max_last_seen_time) and \
+                not hodgepodge.time.in_range(self.last_seen_time, min_last_seen_time, max_last_seen_time):
             return False
         return True
+
+    def __hash__(self):
+        return self.id
