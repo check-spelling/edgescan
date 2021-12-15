@@ -106,10 +106,10 @@ Options:
 Commands:
   count-assets
   get-asset
+  get-asset-names
   get-asset-tags
   get-assets
-  get-host-ips-by-asset-name
-  get-hostnames-by-asset-name
+  get-location-specifiers-by-asset-name
 ```
 
 ##### List assets
@@ -173,13 +173,24 @@ Options:
 
 Commands:
   count-hosts
-  count-hosts-by-asset-group-name
+  count-hosts-by-asset-name
+  count-hosts-by-asset-name-and-status
+  count-hosts-by-asset-name-and-status-and-os-type
+  count-hosts-by-asset-name-and-status-and-os-type-and-os-version
   count-hosts-by-last-seen-time
   count-hosts-by-os-type
   count-hosts-by-os-version
   count-hosts-by-status
+  count-hosts-by-status-and-os-type
+  count-hosts-by-status-and-os-type-and-os-version
   get-host
+  get-hostnames
+  get-hostnames-by-asset-name
   get-hosts
+  get-ip-addresses
+  get-ip-addresses-by-asset-name
+  get-os-types
+  get-os-versions
 ```
 
 ##### List hosts
