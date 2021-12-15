@@ -16,7 +16,7 @@ test:
 install:
 	poetry install
 
-build: test
+build:
 	poetry build
 
 release: build
